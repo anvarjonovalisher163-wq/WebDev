@@ -44,41 +44,41 @@ CB_ADMIN_CANCEL = "admin:cancel"
 def admin_main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Welcome xabari", callback_data=CB_ADMIN_WELCOME)],
-            [InlineKeyboardButton(text="Majburiy kanallar", callback_data=CB_ADMIN_CHANNELS)],
+            [InlineKeyboardButton(text="📝 Welcome xabari", callback_data=CB_ADMIN_WELCOME)],
+            [InlineKeyboardButton(text="📢 Majburiy kanallar", callback_data=CB_ADMIN_CHANNELS)],
             [
-                InlineKeyboardButton(text="Referral rasmi", callback_data=CB_ADMIN_REFERRAL_IMAGE),
-                InlineKeyboardButton(text="Referral matni", callback_data=CB_ADMIN_REFERRAL_TEXT),
+                InlineKeyboardButton(text="🖼 Referral rasmi", callback_data=CB_ADMIN_REFERRAL_IMAGE),
+                InlineKeyboardButton(text="✍️ Referral matni", callback_data=CB_ADMIN_REFERRAL_TEXT),
             ],
-            [InlineKeyboardButton(text="Talablar soni", callback_data=CB_ADMIN_REQUIREMENTS)],
-            [InlineKeyboardButton(text="Maxfiy kanal sozlamalari", callback_data=CB_ADMIN_SECRET_CHANNEL)],
-            [InlineKeyboardButton(text="E'lon yuborish", callback_data=CB_ADMIN_BROADCAST)],
-            [InlineKeyboardButton(text="Statistika", callback_data=CB_ADMIN_STATS)],
-            [InlineKeyboardButton(text="Foydalanuvchini qidirish", callback_data=CB_ADMIN_SEARCH)],
-            [InlineKeyboardButton(text="Adminlar", callback_data=CB_ADMIN_ADMINS)],
+            [InlineKeyboardButton(text="🔢 Talablar soni", callback_data=CB_ADMIN_REQUIREMENTS)],
+            [InlineKeyboardButton(text="🔐 Maxfiy kanal sozlamalari", callback_data=CB_ADMIN_SECRET_CHANNEL)],
+            [InlineKeyboardButton(text="📤 E'lon yuborish", callback_data=CB_ADMIN_BROADCAST)],
+            [InlineKeyboardButton(text="📊 Statistika", callback_data=CB_ADMIN_STATS)],
+            [InlineKeyboardButton(text="🔍 Foydalanuvchini qidirish", callback_data=CB_ADMIN_SEARCH)],
+            [InlineKeyboardButton(text="👥 Adminlar", callback_data=CB_ADMIN_ADMINS)],
         ]
     )
 
 
 def back_to_admin_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)]]
+        inline_keyboard=[[InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)]]
     )
 
 
 def cancel_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="Bekor qilish", callback_data=CB_ADMIN_CANCEL)]]
+        inline_keyboard=[[InlineKeyboardButton(text="❌ Bekor qilish", callback_data=CB_ADMIN_CANCEL)]]
     )
 
 
 def welcome_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Matnni o'zgartirish", callback_data=CB_ADMIN_WELCOME_TEXT)],
-            [InlineKeyboardButton(text="Media biriktirish", callback_data=CB_ADMIN_WELCOME_MEDIA)],
-            [InlineKeyboardButton(text="Mediani o'chirish", callback_data=CB_ADMIN_WELCOME_MEDIA_REMOVE)],
-            [InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)],
+            [InlineKeyboardButton(text="✍️ Matnni o'zgartirish", callback_data=CB_ADMIN_WELCOME_TEXT)],
+            [InlineKeyboardButton(text="🖼 Media biriktirish", callback_data=CB_ADMIN_WELCOME_MEDIA)],
+            [InlineKeyboardButton(text="🗑 Mediani o'chirish", callback_data=CB_ADMIN_WELCOME_MEDIA_REMOVE)],
+            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)],
         ]
     )
 
@@ -86,11 +86,11 @@ def welcome_menu_keyboard() -> InlineKeyboardMarkup:
 def referral_content_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Matnni o'zgartirish", callback_data=CB_ADMIN_REFERRAL_TEXT)],
-            [InlineKeyboardButton(text="Rasmni o'zgartirish", callback_data=CB_ADMIN_REFERRAL_IMAGE)],
-            [InlineKeyboardButton(text="Rasmni o'chirish", callback_data=CB_ADMIN_REFERRAL_IMAGE_REMOVE)],
-            [InlineKeyboardButton(text="Oldindan ko'rish", callback_data=CB_ADMIN_REFERRAL_PREVIEW)],
-            [InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)],
+            [InlineKeyboardButton(text="✍️ Matnni o'zgartirish", callback_data=CB_ADMIN_REFERRAL_TEXT)],
+            [InlineKeyboardButton(text="🖼 Rasmni o'zgartirish", callback_data=CB_ADMIN_REFERRAL_IMAGE)],
+            [InlineKeyboardButton(text="🗑 Rasmni o'chirish", callback_data=CB_ADMIN_REFERRAL_IMAGE_REMOVE)],
+            [InlineKeyboardButton(text="👁 Oldindan ko'rish", callback_data=CB_ADMIN_REFERRAL_PREVIEW)],
+            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)],
         ]
     )
 
@@ -102,32 +102,34 @@ def channels_list_keyboard(channels: list[MandatoryChannel]) -> InlineKeyboardMa
         rows.append(
             [InlineKeyboardButton(text=f"{status} {channel.title}", callback_data=f"admin:channel:{channel.id}")]
         )
-    rows.append([InlineKeyboardButton(text="+ Kanal qo'shish", callback_data=CB_ADMIN_CHANNEL_ADD)])
-    rows.append([InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)])
+    rows.append([InlineKeyboardButton(text="➕ Kanal qo'shish", callback_data=CB_ADMIN_CHANNEL_ADD)])
+    rows.append([InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def channel_detail_keyboard(channel: MandatoryChannel) -> InlineKeyboardMarkup:
-    toggle_text = "Faolsizlantirish" if channel.is_active else "Faollashtirish"
+    toggle_text = "⛔ Faolsizlantirish" if channel.is_active else "✅ Faollashtirish"
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=toggle_text, callback_data=f"admin:channel_toggle:{channel.id}")],
-            [InlineKeyboardButton(text="O'chirish", callback_data=f"admin:channel_del:{channel.id}")],
-            [InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_CHANNELS)],
+            [InlineKeyboardButton(text="🗑 O'chirish", callback_data=f"admin:channel_del:{channel.id}")],
+            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_CHANNELS)],
         ]
     )
 
 
 def secret_channel_menu_keyboard(reissue_allowed: bool) -> InlineKeyboardMarkup:
-    reissue_text = "Qayta olish: yoqilgan (o'chirish)" if reissue_allowed else "Qayta olish: o'chirilgan (yoqish)"
+    reissue_text = (
+        "🔄 Qayta olish: yoqilgan (o'chirish)" if reissue_allowed else "🔄 Qayta olish: o'chirilgan (yoqish)"
+    )
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Kanalni sozlash", callback_data=CB_ADMIN_SECRET_SET_CHANNEL)],
-            [InlineKeyboardButton(text="Amal qilish muddati", callback_data=CB_ADMIN_SECRET_SET_TTL)],
-            [InlineKeyboardButton(text="Foydalanish limiti", callback_data=CB_ADMIN_SECRET_SET_LIMIT)],
+            [InlineKeyboardButton(text="🔗 Kanalni sozlash", callback_data=CB_ADMIN_SECRET_SET_CHANNEL)],
+            [InlineKeyboardButton(text="⏱ Amal qilish muddati", callback_data=CB_ADMIN_SECRET_SET_TTL)],
+            [InlineKeyboardButton(text="🔢 Foydalanish limiti", callback_data=CB_ADMIN_SECRET_SET_LIMIT)],
             [InlineKeyboardButton(text=reissue_text, callback_data=CB_ADMIN_SECRET_TOGGLE_REISSUE)],
-            [InlineKeyboardButton(text="Maksimal qayta urinish", callback_data=CB_ADMIN_SECRET_SET_MAX_REISSUE)],
-            [InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)],
+            [InlineKeyboardButton(text="🔁 Maksimal qayta urinish", callback_data=CB_ADMIN_SECRET_SET_MAX_REISSUE)],
+            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)],
         ]
     )
 
@@ -135,8 +137,8 @@ def secret_channel_menu_keyboard(reissue_allowed: bool) -> InlineKeyboardMarkup:
 def broadcast_confirm_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Yuborish", callback_data=CB_ADMIN_BROADCAST_CONFIRM)],
-            [InlineKeyboardButton(text="Bekor qilish", callback_data=CB_ADMIN_CANCEL)],
+            [InlineKeyboardButton(text="✅ Yuborish", callback_data=CB_ADMIN_BROADCAST_CONFIRM)],
+            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data=CB_ADMIN_CANCEL)],
         ]
     )
 
@@ -144,8 +146,8 @@ def broadcast_confirm_keyboard() -> InlineKeyboardMarkup:
 def stats_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="CSV yuklab olish", callback_data=CB_ADMIN_STATS_CSV)],
-            [InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)],
+            [InlineKeyboardButton(text="📥 CSV yuklab olish", callback_data=CB_ADMIN_STATS_CSV)],
+            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)],
         ]
     )
 
@@ -153,19 +155,19 @@ def stats_menu_keyboard() -> InlineKeyboardMarkup:
 def search_results_keyboard(users: list[User]) -> InlineKeyboardMarkup:
     rows = []
     for user in users:
-        label = f"{user.first_name} (@{user.username})" if user.username else f"{user.first_name} [{user.tg_id}]"
+        label = f"👤 {user.first_name} (@{user.username})" if user.username else f"👤 {user.first_name} [{user.tg_id}]"
         rows.append([InlineKeyboardButton(text=label, callback_data=f"admin:user:{user.id}")])
-    rows.append([InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)])
+    rows.append([InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def user_detail_keyboard(user: User) -> InlineKeyboardMarkup:
-    block_text = "Blokdan chiqarish" if user.is_blocked else "Bloklash"
+    block_text = "✅ Blokdan chiqarish" if user.is_blocked else "🚫 Bloklash"
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=block_text, callback_data=f"admin:user_toggle_block:{user.id}")],
-            [InlineKeyboardButton(text="Xabar yuborish", callback_data=f"admin:user_message:{user.id}")],
-            [InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_SEARCH)],
+            [InlineKeyboardButton(text="✉️ Xabar yuborish", callback_data=f"admin:user_message:{user.id}")],
+            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_SEARCH)],
         ]
     )
 
@@ -173,14 +175,14 @@ def user_detail_keyboard(user: User) -> InlineKeyboardMarkup:
 def admins_list_keyboard(admins: list[Admin], can_manage: bool) -> InlineKeyboardMarkup:
     rows = []
     for admin in admins:
-        label = f"{'👑 ' if admin.is_super_admin else ''}{admin.tg_id}"
+        label = f"{'👑 ' if admin.is_super_admin else '🛡 '}{admin.tg_id}"
         row = [InlineKeyboardButton(text=label, callback_data=f"admin:noop:{admin.id}")]
         if can_manage and not admin.is_super_admin:
             row.append(
-                InlineKeyboardButton(text="O'chirish", callback_data=f"admin:admin_del:{admin.id}")
+                InlineKeyboardButton(text="🗑 O'chirish", callback_data=f"admin:admin_del:{admin.id}")
             )
         rows.append(row)
     if can_manage:
-        rows.append([InlineKeyboardButton(text="+ Admin qo'shish", callback_data=CB_ADMIN_ADMIN_ADD)])
-    rows.append([InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)])
+        rows.append([InlineKeyboardButton(text="➕ Admin qo'shish", callback_data=CB_ADMIN_ADMIN_ADD)])
+    rows.append([InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)])
     return InlineKeyboardMarkup(inline_keyboard=rows)
