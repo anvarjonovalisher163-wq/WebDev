@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from aiogram import Bot, Router
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import ChatMemberUpdated
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,7 +48,10 @@ async def on_private_channel_join(event: ChatMemberUpdated, session: AsyncSessio
     await invite_service.mark_used_and_revoke(link, settings)
     await session.commit()
 
-    await bot.send_message(
-        user.tg_id,
-        "Tabriklaymiz! Siz muvaffaqiyatli ravishda yopiq kanalga qo'shildingiz.",
-    )
+    try:
+        await bot.send_message(
+            user.tg_id,
+            "Tabriklaymiz! Siz muvaffaqiyatli ravishda yopiq kanalga qo'shildingiz.",
+        )
+    except (TelegramForbiddenError, TelegramBadRequest):
+        pass

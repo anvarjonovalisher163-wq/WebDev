@@ -12,6 +12,7 @@ from bot.handlers import setup_routers
 from bot.jobs.scheduler import scheduler, setup_jobs
 from bot.middlewares.db import DbSessionMiddleware
 from bot.repositories.admin_repo import AdminRepo
+from bot.utils.error_handler import register_error_handler
 from bot.utils.logging import setup_logging
 
 
@@ -31,6 +32,7 @@ async def main() -> None:
 
     dp.update.middleware(DbSessionMiddleware())
     setup_routers(dp)
+    register_error_handler(dp)
 
     bot_info = await bot.get_me()
     dp["bot_username"] = bot_info.username

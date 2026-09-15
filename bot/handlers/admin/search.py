@@ -1,5 +1,5 @@
 from aiogram import Bot, Router
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -118,5 +118,9 @@ async def on_user_message_received(
         await log_admin_action(session, message.from_user.id, "send_individual_message", str(user.tg_id))
         await session.commit()
         await message.answer("Xabar yuborildi.", reply_markup=user_detail_keyboard(user))
+    except TelegramForbiddenError:
+        user.is_blocked = True
+        await session.commit()
+        await message.answer("Foydalanuvchi botni bloklagan, xabar yuborilmadi.")
     except TelegramBadRequest:
-        await message.answer("Xabarni yuborib bo'lmadi (foydalanuvchi botni bloklagan bo'lishi mumkin).")
+        await message.answer("Xabarni yuborib bo'lmadi.")

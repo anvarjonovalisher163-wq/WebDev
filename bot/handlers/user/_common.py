@@ -1,5 +1,5 @@
 from aiogram import Bot
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.settings import BotSettings
@@ -66,6 +66,8 @@ async def finalize_subscription(
                 referrer.tg_id,
                 "Tabriklaymiz! Siz barcha shartlarni bajardingiz. Endi maxfiy havolani olishingiz mumkin.",
             )
+    except TelegramForbiddenError:
+        referrer.is_blocked = True
     except TelegramBadRequest:
         pass
 
