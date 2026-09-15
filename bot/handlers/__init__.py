@@ -1,8 +1,9 @@
 from aiogram import Dispatcher
 
-# Handler routerlari keyingi bosqichlarda shu yerga qo'shiladi
-# (user/start, user/subscription, admin/panel, ...).
-_ROUTERS: list = []
+from bot.handlers.user import router as user_router
+
+# admin router keyingi bosqichda shu yerga qo'shiladi
+_ROUTERS: list = [user_router]
 
 
 def setup_routers(dp: Dispatcher) -> None:

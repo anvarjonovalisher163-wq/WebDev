@@ -26,6 +26,9 @@ async def main() -> None:
     dp.update.middleware(DbSessionMiddleware())
     setup_routers(dp)
 
+    bot_info = await bot.get_me()
+    dp["bot_username"] = bot_info.username
+
     setup_jobs(bot)
     scheduler.start()
 

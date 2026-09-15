@@ -1,0 +1,64 @@
+from datetime import datetime, timezone
+from typing import Optional
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from bot.models.referral import Referral, ReferralStatus
+
+
+class ReferralRepo:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create_pending(self, referrer_id: int, referred_id: int) -> Referral:
+        referral = Referral(
+            referrer_id=referrer_id,
+            referred_id=referred_id,
+            status=ReferralStatus.PENDING,
+        )
+        self.session.add(referral)
+        await self.session.flush()
+        return referral
+
+    async def get_by_referred_id(self, referred_id: int) -> Optional[Referral]:
+        result = await self.session.execute(
+            select(Referral).where(Referral.referred_id == referred_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def list_by_referrer(self, referrer_id: int) -> list[Referral]:
+        result = await self.session.execute(
+            select(Referral).where(Referral.referrer_id == referrer_id)
+        )
+        return list(result.scalars().all())
+
+    async def list_approved_by_referrer(self, referrer_id: int) -> list[Referral]:
+        result = await self.session.execute(
+            select(Referral).where(
+                Referral.referrer_id == referrer_id,
+                Referral.status == ReferralStatus.APPROVED,
+            )
+        )
+        return list(result.scalars().all())
+
+    async def count_by_referrer_and_status(self, referrer_id: int, status: ReferralStatus) -> int:
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(Referral)
+            .where(Referral.referrer_id == referrer_id, Referral.status == status)
+        )
+        return result.scalar_one()
+
+    async def approve(self, referral: Referral) -> None:
+        referral.status = ReferralStatus.APPROVED
+        referral.approved_at = datetime.now(timezone.utc)
+        referral.last_checked_at = referral.approved_at
+
+    async def mark_left_channels(self, referral: Referral) -> None:
+        referral.status = ReferralStatus.LEFT_CHANNELS
+        referral.reject_reason = "majburiy kanallardan chiqib ketgan"
+        referral.last_checked_at = datetime.now(timezone.utc)
+
+    async def touch_checked(self, referral: Referral) -> None:
+        referral.last_checked_at = datetime.now(timezone.utc)
