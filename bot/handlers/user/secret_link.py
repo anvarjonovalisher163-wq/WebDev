@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
 
-from aiogram import Bot, Router
-from aiogram.types import CallbackQuery
+from aiogram import Bot, F, Router
+from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.user.menu import require_ready_user
-from bot.keyboards.user import CB_MENU_SECRET_LINK
+from bot.keyboards.user import BTN_SECRET_LINK
 from bot.repositories.channel_repo import ChannelRepo
 from bot.repositories.invite_repo import InviteRepo
 from bot.repositories.settings_repo import SettingsRepo
@@ -16,20 +16,19 @@ from bot.services.subscription_service import SubscriptionService
 router = Router(name="user_secret_link")
 
 
-@router.callback_query(lambda c: c.data == CB_MENU_SECRET_LINK)
-async def on_secret_link(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
-    user = await require_ready_user(callback, session, bot)
+@router.message(F.text == BTN_SECRET_LINK)
+async def on_secret_link(message: Message, session: AsyncSession, bot: Bot) -> None:
+    user = await require_ready_user(message, session, bot)
     if user is None:
         return
 
     settings = await SettingsRepo(session).get()
     if settings.secret_channel_id is None:
-        await callback.answer("Hozircha maxfiy kanal sozlanmagan.", show_alert=True)
+        await message.answer("Hozircha maxfiy kanal sozlanmagan.")
         return
 
     if user.joined_private_channel:
-        await callback.message.answer("Siz allaqachon yopiq kanalga qo'shilgansiz.")
-        await callback.answer()
+        await message.answer("Siz allaqachon yopiq kanalga qo'shilgansiz.")
         return
 
     invite_repo = InviteRepo(session)
@@ -38,12 +37,11 @@ async def on_secret_link(callback: CallbackQuery, session: AsyncSession, bot: Bo
     existing_active = await invite_repo.get_active_for_user(user.id)
     if existing_active is not None and existing_active.expires_at > now:
         remaining_minutes = max(int((existing_active.expires_at - now).total_seconds() // 60), 1)
-        await callback.message.answer(
+        await message.answer(
             "Sizda faol taklif havolasi mavjud:\n\n"
             f"{existing_active.telegram_link}\n\n"
             f"Havola yana {remaining_minutes} daqiqa davomida amal qiladi va faqat bir marta ishlatiladi."
         )
-        await callback.answer()
         return
 
     subscription_service = SubscriptionService(bot)
@@ -54,33 +52,29 @@ async def on_secret_link(callback: CallbackQuery, session: AsyncSession, bot: Bo
     progress = await referral_service.get_progress(user.id, settings.required_referral_count)
 
     if progress["remaining"] > 0:
-        await callback.message.answer(
+        await message.answer(
             "Maxfiy havolani olish uchun yana "
             f"{progress['remaining']} ta tasdiqlangan foydalanuvchi taklif qilishingiz kerak."
         )
-        await callback.answer()
         return
 
     if user.secret_link_taken:
         if not settings.reissue_allowed:
-            await callback.message.answer(
+            await message.answer(
                 "Sizga avval berilgan havolaning muddati tugagan va qayta olish imkoni yo'q."
             )
-            await callback.answer()
             return
         if user.secret_link_attempts >= settings.max_reissue_attempts:
-            await callback.message.answer("Qayta havola olish limitiga yetdingiz.")
-            await callback.answer()
+            await message.answer("Qayta havola olish limitiga yetdingiz.")
             return
 
     invite_service = InviteService(session, bot)
     link = await invite_service.create_one_time_link(user, settings)
     await session.commit()
 
-    await callback.message.answer(
+    await message.answer(
         "Tabriklaymiz! Siz barcha shartlarni bajardingiz.\n\n"
         "Quyidagi havola orqali yopiq kanalga qo'shilishingiz mumkin.\n"
         f"Havola {settings.link_ttl_minutes} daqiqa davomida amal qiladi va faqat bir marta ishlatiladi.\n\n"
         f"{link.telegram_link}"
     )
-    await callback.answer()

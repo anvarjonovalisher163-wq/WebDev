@@ -1,11 +1,17 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+)
 
 from bot.models.channel import MandatoryChannel
 
 CB_CHECK_SUBSCRIPTION = "check_subscription"
-CB_MENU_INVITE = "menu:invite"
-CB_MENU_MY_REFERRALS = "menu:my_referrals"
-CB_MENU_SECRET_LINK = "menu:secret_link"
+
+BTN_INVITE = "Taklif qilish"
+BTN_MY_REFERRALS = "Mening takliflarim"
+BTN_SECRET_LINK = "Maxfiy havolani olish"
 
 
 def subscription_gate_keyboard(channels: list[MandatoryChannel]) -> InlineKeyboardMarkup:
@@ -18,13 +24,11 @@ def subscription_gate_keyboard(channels: list[MandatoryChannel]) -> InlineKeyboa
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def main_menu_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="Taklif qilish", callback_data=CB_MENU_INVITE),
-                InlineKeyboardButton(text="Mening takliflarim", callback_data=CB_MENU_MY_REFERRALS),
-            ],
-            [InlineKeyboardButton(text="Maxfiy havolani olish", callback_data=CB_MENU_SECRET_LINK)],
-        ]
+def main_menu_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=BTN_INVITE), KeyboardButton(text=BTN_MY_REFERRALS)],
+            [KeyboardButton(text=BTN_SECRET_LINK)],
+        ],
+        resize_keyboard=True,
     )

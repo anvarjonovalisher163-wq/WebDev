@@ -33,4 +33,5 @@ async def on_check_subscription(callback: CallbackQuery, session: AsyncSession, 
     await session.commit()
 
     await callback.answer("Barcha kanallarga obuna tasdiqlandi!")
-    await callback.message.edit_text("Asosiy menyu:", reply_markup=main_menu_keyboard())
+    await callback.message.edit_text("Barcha kanallarga obuna tasdiqlandi!")
+    await callback.message.answer("Asosiy menyu:", reply_markup=main_menu_keyboard())
