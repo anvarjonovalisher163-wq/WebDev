@@ -33,7 +33,7 @@ async def on_welcome_menu(callback: CallbackQuery, session: AsyncSession) -> Non
 async def on_welcome_text_prompt(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(WelcomeStates.waiting_text)
     await callback.message.edit_text(
-        "Yangi Welcome matnini yuboring (HTML formatlash: <b>, <i>, havolalar mumkin):",
+        "Yangi Welcome matnini yuboring (HTML formatlash: &lt;b&gt;, &lt;i&gt;, havolalar mumkin):",
         reply_markup=cancel_keyboard(),
     )
     await callback.answer()
