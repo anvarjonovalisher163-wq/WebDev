@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.user import User
@@ -16,10 +16,6 @@ class UserRepo:
 
     async def get_by_id(self, user_id: int) -> Optional[User]:
         return await self.session.get(User, user_id)
-
-    async def get_by_referral_code(self, referral_code: str) -> Optional[User]:
-        result = await self.session.execute(select(User).where(User.referral_code == referral_code))
-        return result.scalar_one_or_none()
 
     async def create(
         self,
@@ -53,5 +49,34 @@ class UserRepo:
         user.last_name = last_name
         user.username = username
 
-    async def set_subscribed(self, user: User, is_subscribed: bool) -> None:
-        user.is_subscribed = is_subscribed
+    async def list_not_blocked(self) -> list[User]:
+        result = await self.session.execute(select(User).where(User.is_blocked.is_(False)))
+        return list(result.scalars().all())
+
+    async def search(self, query: str, limit: int = 10) -> list[User]:
+        query = query.strip().lstrip("@")
+        if query.isdigit():
+            result = await self.session.execute(
+                select(User).where(User.tg_id == int(query)).limit(limit)
+            )
+            return list(result.scalars().all())
+
+        like = f"%{query}%"
+        result = await self.session.execute(
+            select(User)
+            .where(
+                or_(
+                    User.username.ilike(like),
+                    User.first_name.ilike(like),
+                    User.last_name.ilike(like),
+                )
+            )
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def count_referred_by(self, referrer_id: int) -> int:
+        result = await self.session.execute(
+            select(func.count()).select_from(User).where(User.referrer_id == referrer_id)
+        )
+        return result.scalar_one()

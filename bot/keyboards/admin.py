@@ -1,6 +1,8 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from bot.models.admin import Admin
 from bot.models.channel import MandatoryChannel
+from bot.models.user import User
 
 CB_ADMIN_WELCOME = "admin:welcome"
 CB_ADMIN_WELCOME_TEXT = "admin:welcome_text"
@@ -25,9 +27,15 @@ CB_ADMIN_SECRET_TOGGLE_REISSUE = "admin:secret_toggle_reissue"
 CB_ADMIN_SECRET_SET_MAX_REISSUE = "admin:secret_set_max_reissue"
 
 CB_ADMIN_BROADCAST = "admin:broadcast"
+CB_ADMIN_BROADCAST_CONFIRM = "admin:broadcast_confirm"
+
 CB_ADMIN_STATS = "admin:stats"
+CB_ADMIN_STATS_CSV = "admin:stats_csv"
+
 CB_ADMIN_SEARCH = "admin:search"
+
 CB_ADMIN_ADMINS = "admin:admins"
+CB_ADMIN_ADMIN_ADD = "admin:admin_add"
 
 CB_ADMIN_BACK = "admin:back"
 CB_ADMIN_CANCEL = "admin:cancel"
@@ -122,3 +130,57 @@ def secret_channel_menu_keyboard(reissue_allowed: bool) -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)],
         ]
     )
+
+
+def broadcast_confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Yuborish", callback_data=CB_ADMIN_BROADCAST_CONFIRM)],
+            [InlineKeyboardButton(text="Bekor qilish", callback_data=CB_ADMIN_CANCEL)],
+        ]
+    )
+
+
+def stats_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="CSV yuklab olish", callback_data=CB_ADMIN_STATS_CSV)],
+            [InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)],
+        ]
+    )
+
+
+def search_results_keyboard(users: list[User]) -> InlineKeyboardMarkup:
+    rows = []
+    for user in users:
+        label = f"{user.first_name} (@{user.username})" if user.username else f"{user.first_name} [{user.tg_id}]"
+        rows.append([InlineKeyboardButton(text=label, callback_data=f"admin:user:{user.id}")])
+    rows.append([InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def user_detail_keyboard(user: User) -> InlineKeyboardMarkup:
+    block_text = "Blokdan chiqarish" if user.is_blocked else "Bloklash"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=block_text, callback_data=f"admin:user_toggle_block:{user.id}")],
+            [InlineKeyboardButton(text="Xabar yuborish", callback_data=f"admin:user_message:{user.id}")],
+            [InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_SEARCH)],
+        ]
+    )
+
+
+def admins_list_keyboard(admins: list[Admin], can_manage: bool) -> InlineKeyboardMarkup:
+    rows = []
+    for admin in admins:
+        label = f"{'👑 ' if admin.is_super_admin else ''}{admin.tg_id}"
+        row = [InlineKeyboardButton(text=label, callback_data=f"admin:noop:{admin.id}")]
+        if can_manage and not admin.is_super_admin:
+            row.append(
+                InlineKeyboardButton(text="O'chirish", callback_data=f"admin:admin_del:{admin.id}")
+            )
+        rows.append(row)
+    if can_manage:
+        rows.append([InlineKeyboardButton(text="+ Admin qo'shish", callback_data=CB_ADMIN_ADMIN_ADD)])
+    rows.append([InlineKeyboardButton(text="Orqaga", callback_data=CB_ADMIN_BACK)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)

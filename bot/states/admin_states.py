@@ -33,6 +33,7 @@ class BroadcastStates(StatesGroup):
 
 class SearchStates(StatesGroup):
     waiting_query = State()
+    waiting_message_text = State()
 
 
 class AdminManageStates(StatesGroup):
