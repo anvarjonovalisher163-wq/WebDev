@@ -7,14 +7,20 @@ from aiogram.fsm.storage.redis import RedisStorage
 from loguru import logger
 
 from bot.config import settings
+from bot.db.session import async_session_factory
 from bot.handlers import setup_routers
 from bot.jobs.scheduler import scheduler, setup_jobs
 from bot.middlewares.db import DbSessionMiddleware
+from bot.repositories.admin_repo import AdminRepo
 from bot.utils.logging import setup_logging
 
 
 async def main() -> None:
     setup_logging()
+
+    async with async_session_factory() as session:
+        await AdminRepo(session).ensure_super_admins(settings.super_admin_id_list)
+        await session.commit()
 
     bot = Bot(
         token=settings.bot_token,
