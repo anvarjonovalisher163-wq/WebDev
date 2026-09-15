@@ -3,6 +3,7 @@ import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 from loguru import logger
 
@@ -27,7 +28,10 @@ async def main() -> None:
         token=settings.bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
-    storage = RedisStorage.from_url(settings.redis_url)
+    if settings.storage_backend == "memory":
+        storage = MemoryStorage()
+    else:
+        storage = RedisStorage.from_url(settings.redis_url)
     dp = Dispatcher(storage=storage)
 
     dp.update.middleware(DbSessionMiddleware())

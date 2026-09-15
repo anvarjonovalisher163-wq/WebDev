@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     redis_port: int = 6379
     redis_db: int = 0
 
+    # "redis" (production, docker-compose) yoki "memory" (Redis'siz lokal test uchun;
+    # FSM holatlari bot qayta ishga tushganda yo'qoladi).
+    storage_backend: str = "redis"
+
     log_level: str = "INFO"
 
     @property
