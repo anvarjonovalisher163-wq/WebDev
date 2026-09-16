@@ -12,6 +12,7 @@ from bot.models.channel import MandatoryChannel
 CB_CHECK_SUBSCRIPTION = "check_subscription"
 CB_REFRESH_MY_REFERRALS = "refresh_my_referrals"
 CB_SHOW_INVITE = "show_invite"
+CB_SHOW_MY_REFERRALS = "show_my_referrals"
 
 BTN_INVITE = "🔗 Taklif qilish"
 BTN_MY_REFERRALS = "📊 Mening takliflarim"
@@ -32,6 +33,9 @@ def subscription_gate_keyboard(channels: list[MandatoryChannel]) -> InlineKeyboa
 
 
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
+    """Eski (allaqachon ba'zi foydalanuvchilar ekranida ko'rsatilgan) pastki
+    klaviatura - endi yangi xabarlarga biriktirilmaydi, lekin matn orqali
+    kelgan bosishlarni qayta ishlash uchun handlerlar saqlab qolinadi."""
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text=BTN_INVITE), KeyboardButton(text=BTN_MY_REFERRALS)]],
         resize_keyboard=True,
@@ -46,11 +50,14 @@ def my_referrals_refresh_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def invite_prompt_keyboard(referral_link: str) -> InlineKeyboardMarkup:
+def welcome_actions_keyboard(referral_link: str) -> InlineKeyboardMarkup:
     share_url = f"https://t.me/share/url?url={quote(referral_link, safe='')}&text={quote(SHARE_TEXT, safe='')}"
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🔗 Taklif qilish", callback_data=CB_SHOW_INVITE)],
-            [InlineKeyboardButton(text="📤 Ulashish", url=share_url)],
+            [
+                InlineKeyboardButton(text="🔗 Taklif qilish", callback_data=CB_SHOW_INVITE),
+                InlineKeyboardButton(text="📤 Ulashish", url=share_url),
+            ],
+            [InlineKeyboardButton(text="📊 Mening takliflarim", callback_data=CB_SHOW_MY_REFERRALS)],
         ]
     )

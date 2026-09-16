@@ -3,18 +3,15 @@ from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.user._common import check_gate, finalize_subscription
-from bot.keyboards.user import (
-    CB_CHECK_SUBSCRIPTION,
-    invite_prompt_keyboard,
-    main_menu_keyboard,
-    subscription_gate_keyboard,
-)
+from bot.keyboards.user import CB_CHECK_SUBSCRIPTION, subscription_gate_keyboard, welcome_actions_keyboard
 from bot.repositories.user_repo import UserRepo
 from bot.services.referral_service import ReferralService
 from bot.services.subscription_service import SubscriptionService
 from bot.services.user_service import build_referral_link
 
 router = Router(name="user_subscription")
+
+CONFIRMED_TEXT = "✅ Obuna tasdiqlandi! Botdan foydalanishingiz mumkin."
 
 
 @router.callback_query(lambda c: c.data == CB_CHECK_SUBSCRIPTION)
@@ -41,10 +38,12 @@ async def on_check_subscription(
     await session.commit()
 
     await callback.answer("Barcha kanallarga obuna tasdiqlandi!")
-    await callback.message.edit_reply_markup(reply_markup=None)
-    await callback.message.answer(
-        "✅ Obuna tasdiqlandi! Botdan foydalanishingiz mumkin.", reply_markup=main_menu_keyboard()
-    )
-
     link = build_referral_link(bot_username, user.tg_id)
-    await callback.message.answer("👥 Do'stlaringizni taklif qiling!", reply_markup=invite_prompt_keyboard(link))
+    keyboard = welcome_actions_keyboard(link)
+
+    if callback.message.photo:
+        await callback.message.edit_caption(caption=CONFIRMED_TEXT, reply_markup=keyboard)
+    elif callback.message.video:
+        await callback.message.edit_caption(caption=CONFIRMED_TEXT, reply_markup=keyboard)
+    else:
+        await callback.message.edit_text(CONFIRMED_TEXT, reply_markup=keyboard)

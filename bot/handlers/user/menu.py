@@ -11,6 +11,7 @@ from bot.keyboards.user import (
     BTN_MY_REFERRALS,
     CB_REFRESH_MY_REFERRALS,
     CB_SHOW_INVITE,
+    CB_SHOW_MY_REFERRALS,
     my_referrals_refresh_keyboard,
     subscription_gate_keyboard,
 )
@@ -119,6 +120,23 @@ async def on_my_referrals(message: Message, session: AsyncSession, bot: Bot) -> 
     await message.answer(text, reply_markup=my_referrals_refresh_keyboard())
     if secret_link_text:
         await message.answer(secret_link_text)
+
+
+@router.callback_query(lambda c: c.data == CB_SHOW_MY_REFERRALS)
+async def on_my_referrals_inline(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
+    user = await UserRepo(session).get_by_tg_id(callback.from_user.id)
+    if user is None or user.is_blocked:
+        await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
+        return
+
+    settings = await SettingsRepo(session).get()
+    referral_service = ReferralService(session, SubscriptionService(bot))
+    text, secret_link_text = await _render_my_referrals(session, bot, user, settings, referral_service)
+
+    await callback.message.answer(text, reply_markup=my_referrals_refresh_keyboard())
+    await callback.answer()
+    if secret_link_text:
+        await callback.message.answer(secret_link_text)
 
 
 @router.callback_query(lambda c: c.data == CB_REFRESH_MY_REFERRALS)
