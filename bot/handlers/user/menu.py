@@ -10,7 +10,6 @@ from bot.keyboards.user import (
     CB_REFRESH_MY_REFERRALS,
     CB_SHOW_INVITE,
     CB_SHOW_MY_REFERRALS,
-    CB_SHOW_SHARE,
     my_referrals_refresh_keyboard,
     subscription_gate_keyboard,
 )
@@ -87,15 +86,6 @@ async def on_invite_inline(callback: CallbackQuery, session: AsyncSession, bot: 
         return
     await _send_invite_content(callback.message, session, user, bot_username)
     await callback.answer()
-
-
-@router.callback_query(lambda c: c.data == CB_SHOW_SHARE)
-async def on_share_inline(callback: CallbackQuery, session: AsyncSession, bot: Bot, bot_username: str) -> None:
-    user = await _require_ready_user_cb(callback, session, bot)
-    if user is None:
-        return
-    await _send_invite_content(callback.message, session, user, bot_username)
-    await callback.answer("Yuqoridagi postni forward tugmasi orqali do'stingizga yuboring 👆")
 
 
 def _build_my_referrals_text(user: User, progress: dict) -> str:

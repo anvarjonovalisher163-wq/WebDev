@@ -13,6 +13,7 @@ class ChannelStates(StatesGroup):
 class ReferralContentStates(StatesGroup):
     waiting_text = State()
     waiting_image = State()
+    waiting_share_text = State()
 
 
 class RequirementsStates(StatesGroup):

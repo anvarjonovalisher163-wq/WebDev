@@ -16,6 +16,7 @@ CB_ADMIN_REFERRAL_TEXT = "admin:referral_text"
 CB_ADMIN_REFERRAL_IMAGE = "admin:referral_image"
 CB_ADMIN_REFERRAL_PREVIEW = "admin:referral_preview"
 CB_ADMIN_REFERRAL_IMAGE_REMOVE = "admin:referral_image_remove"
+CB_ADMIN_SHARE_TEXT = "admin:share_text"
 
 CB_ADMIN_REQUIREMENTS = "admin:requirements"
 
@@ -50,6 +51,7 @@ def admin_main_menu_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="🖼 Referral rasmi", callback_data=CB_ADMIN_REFERRAL_IMAGE),
                 InlineKeyboardButton(text="✍️ Referral matni", callback_data=CB_ADMIN_REFERRAL_TEXT),
             ],
+            [InlineKeyboardButton(text="📤 Ulashish matni", callback_data=CB_ADMIN_SHARE_TEXT)],
             [InlineKeyboardButton(text="🔢 Talablar soni", callback_data=CB_ADMIN_REQUIREMENTS)],
             [InlineKeyboardButton(text="🔐 Maxfiy kanal sozlamalari", callback_data=CB_ADMIN_SECRET_CHANNEL)],
             [InlineKeyboardButton(text="📤 E'lon yuborish", callback_data=CB_ADMIN_BROADCAST)],

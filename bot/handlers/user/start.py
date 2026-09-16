@@ -1,21 +1,28 @@
 from aiogram import Bot, Router
 from aiogram.filters import CommandObject, CommandStart
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.user._common import check_gate, finalize_subscription, get_welcome_text
-from bot.keyboards.user import subscription_gate_keyboard, welcome_actions_keyboard
+from bot.keyboards.user import DEFAULT_SHARE_TEXT, subscription_gate_keyboard, welcome_actions_keyboard
 from bot.repositories.settings_repo import SettingsRepo
 from bot.services.referral_service import ReferralService
 from bot.services.subscription_service import SubscriptionService
-from bot.services.user_service import UserService
+from bot.services.user_service import UserService, build_referral_link
 
 router = Router(name="user_start")
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, command: CommandObject, session: AsyncSession, bot: Bot) -> None:
+async def cmd_start(
+    message: Message, command: CommandObject, session: AsyncSession, bot: Bot, bot_username: str
+) -> None:
     tg_user = message.from_user
+
+    # Eski pastki (reply) klaviatura hali foydalanuvchi ekranida qolgan bo'lishi
+    # mumkin - uni bosishni kutmasdan avtomatik tozalaymiz.
+    cleanup = await message.answer("⏳", reply_markup=ReplyKeyboardRemove())
+    await cleanup.delete()
 
     subscription_service = SubscriptionService(bot)
     referral_service = ReferralService(session, subscription_service)
@@ -42,7 +49,8 @@ async def cmd_start(message: Message, command: CommandObject, session: AsyncSess
     if is_subscribed:
         await finalize_subscription(session, bot, user, referral_service)
         await session.commit()
-        keyboard = welcome_actions_keyboard()
+        link = build_referral_link(bot_username, user.tg_id)
+        keyboard = welcome_actions_keyboard(link, settings.share_text or DEFAULT_SHARE_TEXT)
     else:
         user.is_subscribed = False
         await session.commit()

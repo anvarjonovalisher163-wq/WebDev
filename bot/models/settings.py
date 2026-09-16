@@ -19,6 +19,7 @@ class BotSettings(Base):
 
     referral_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     referral_image_file_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    share_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     required_referral_count: Mapped[int] = mapped_column(Integer, default=5)
 
