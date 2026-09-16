@@ -7,7 +7,6 @@ from bot.keyboards.user import CB_CHECK_SUBSCRIPTION, subscription_gate_keyboard
 from bot.repositories.user_repo import UserRepo
 from bot.services.referral_service import ReferralService
 from bot.services.subscription_service import SubscriptionService
-from bot.services.user_service import build_referral_link
 
 router = Router(name="user_subscription")
 
@@ -15,9 +14,7 @@ CONFIRMED_TEXT = "✅ Obuna tasdiqlandi! Botdan foydalanishingiz mumkin."
 
 
 @router.callback_query(lambda c: c.data == CB_CHECK_SUBSCRIPTION)
-async def on_check_subscription(
-    callback: CallbackQuery, session: AsyncSession, bot: Bot, bot_username: str
-) -> None:
+async def on_check_subscription(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
     user = await UserRepo(session).get_by_tg_id(callback.from_user.id)
     if user is None or user.is_blocked:
         await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
@@ -38,8 +35,7 @@ async def on_check_subscription(
     await session.commit()
 
     await callback.answer("Barcha kanallarga obuna tasdiqlandi!")
-    link = build_referral_link(bot_username, user.tg_id)
-    keyboard = welcome_actions_keyboard(link)
+    keyboard = welcome_actions_keyboard()
 
     if callback.message.photo:
         await callback.message.edit_caption(caption=CONFIRMED_TEXT, reply_markup=keyboard)

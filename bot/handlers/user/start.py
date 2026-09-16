@@ -8,15 +8,13 @@ from bot.keyboards.user import subscription_gate_keyboard, welcome_actions_keybo
 from bot.repositories.settings_repo import SettingsRepo
 from bot.services.referral_service import ReferralService
 from bot.services.subscription_service import SubscriptionService
-from bot.services.user_service import UserService, build_referral_link
+from bot.services.user_service import UserService
 
 router = Router(name="user_start")
 
 
 @router.message(CommandStart())
-async def cmd_start(
-    message: Message, command: CommandObject, session: AsyncSession, bot: Bot, bot_username: str
-) -> None:
+async def cmd_start(message: Message, command: CommandObject, session: AsyncSession, bot: Bot) -> None:
     tg_user = message.from_user
 
     subscription_service = SubscriptionService(bot)
@@ -44,8 +42,7 @@ async def cmd_start(
     if is_subscribed:
         await finalize_subscription(session, bot, user, referral_service)
         await session.commit()
-        link = build_referral_link(bot_username, user.tg_id)
-        keyboard = welcome_actions_keyboard(link)
+        keyboard = welcome_actions_keyboard()
     else:
         user.is_subscribed = False
         await session.commit()

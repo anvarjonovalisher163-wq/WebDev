@@ -2,16 +2,15 @@ from typing import Optional
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.user._common import check_gate
 from bot.keyboards.user import (
-    BTN_INVITE,
-    BTN_MY_REFERRALS,
     CB_REFRESH_MY_REFERRALS,
     CB_SHOW_INVITE,
     CB_SHOW_MY_REFERRALS,
+    CB_SHOW_SHARE,
     my_referrals_refresh_keyboard,
     subscription_gate_keyboard,
 )
@@ -26,24 +25,44 @@ from bot.services.user_service import build_referral_link
 
 router = Router(name="user_menu")
 
+# Eski (endi ishlatilmaydigan) pastki klaviaturadagi tugma matnlari - faqat
+# foydalanuvchi ekranida hali qolib ketgan bo'lishi mumkin bo'lgan eski
+# klaviaturani tozalash uchun saqlanadi.
+_LEGACY_BTN_INVITE = "🔗 Taklif qilish"
+_LEGACY_BTN_MY_REFERRALS = "📊 Mening takliflarim"
 
-async def require_ready_user(message: Message, session: AsyncSession, bot: Bot) -> Optional[User]:
-    user = await UserRepo(session).get_by_tg_id(message.from_user.id)
+
+async def _resolve_active_user(
+    session: AsyncSession, bot: Bot, tg_id: int
+) -> tuple[Optional[User], list]:
+    """(None, []) - topilmadi/bloklangan; (None, not_subscribed) - obuna yo'q; (user, []) - tayyor."""
+    user = await UserRepo(session).get_by_tg_id(tg_id)
     if user is None or user.is_blocked:
-        await message.answer("Avval /start buyrug'ini yuboring.")
-        return None
+        return None, []
 
     subscription_service = SubscriptionService(bot)
     is_subscribed, not_subscribed = await check_gate(session, subscription_service, user)
     if not is_subscribed:
         user.is_subscribed = False
         await session.commit()
-        await message.answer(
-            "Avval barcha majburiy kanallarga obuna bo'ling va \"✅ Obunani tekshirish\" tugmasini bosing:",
+        return None, not_subscribed
+    return user, []
+
+
+async def _require_ready_user_cb(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> Optional[User]:
+    user, not_subscribed = await _resolve_active_user(session, bot, callback.from_user.id)
+    if user is not None:
+        return user
+
+    if not_subscribed:
+        await callback.answer("Avval barcha majburiy kanallarga obuna bo'ling.", show_alert=True)
+        await callback.message.answer(
+            "Quyidagi kanallarga obuna bo'ling va \"✅ Obunani tekshirish\" tugmasini bosing:",
             reply_markup=subscription_gate_keyboard(not_subscribed),
         )
-        return None
-    return user
+    else:
+        await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
+    return None
 
 
 async def _send_invite_content(target: Message, session: AsyncSession, user: User, bot_username: str) -> None:
@@ -61,22 +80,22 @@ async def _send_invite_content(target: Message, session: AsyncSession, user: Use
         await target.answer(text)
 
 
-@router.message(F.text == BTN_INVITE)
-async def on_invite(message: Message, session: AsyncSession, bot: Bot, bot_username: str) -> None:
-    user = await require_ready_user(message, session, bot)
-    if user is None:
-        return
-    await _send_invite_content(message, session, user, bot_username)
-
-
 @router.callback_query(lambda c: c.data == CB_SHOW_INVITE)
 async def on_invite_inline(callback: CallbackQuery, session: AsyncSession, bot: Bot, bot_username: str) -> None:
-    user = await UserRepo(session).get_by_tg_id(callback.from_user.id)
-    if user is None or user.is_blocked:
-        await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
+    user = await _require_ready_user_cb(callback, session, bot)
+    if user is None:
         return
     await _send_invite_content(callback.message, session, user, bot_username)
     await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == CB_SHOW_SHARE)
+async def on_share_inline(callback: CallbackQuery, session: AsyncSession, bot: Bot, bot_username: str) -> None:
+    user = await _require_ready_user_cb(callback, session, bot)
+    if user is None:
+        return
+    await _send_invite_content(callback.message, session, user, bot_username)
+    await callback.answer("Yuqoridagi postni forward tugmasi orqali do'stingizga yuboring 👆")
 
 
 def _build_my_referrals_text(user: User, progress: dict) -> str:
@@ -107,26 +126,10 @@ async def _render_my_referrals(
     return _build_my_referrals_text(user, progress), secret_link_text
 
 
-@router.message(F.text == BTN_MY_REFERRALS)
-async def on_my_referrals(message: Message, session: AsyncSession, bot: Bot) -> None:
-    user = await require_ready_user(message, session, bot)
-    if user is None:
-        return
-
-    settings = await SettingsRepo(session).get()
-    referral_service = ReferralService(session, SubscriptionService(bot))
-    text, secret_link_text = await _render_my_referrals(session, bot, user, settings, referral_service)
-
-    await message.answer(text, reply_markup=my_referrals_refresh_keyboard())
-    if secret_link_text:
-        await message.answer(secret_link_text)
-
-
 @router.callback_query(lambda c: c.data == CB_SHOW_MY_REFERRALS)
 async def on_my_referrals_inline(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
-    user = await UserRepo(session).get_by_tg_id(callback.from_user.id)
-    if user is None or user.is_blocked:
-        await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
+    user = await _require_ready_user_cb(callback, session, bot)
+    if user is None:
         return
 
     settings = await SettingsRepo(session).get()
@@ -158,3 +161,14 @@ async def on_refresh_my_referrals(callback: CallbackQuery, session: AsyncSession
 
     if secret_link_text:
         await callback.message.answer(secret_link_text)
+
+
+@router.message(F.text.in_({_LEGACY_BTN_INVITE, _LEGACY_BTN_MY_REFERRALS}))
+async def on_legacy_menu_button(message: Message) -> None:
+    """Eski pastki klaviatura hali ba'zi foydalanuvchilar ekranida qolgan
+    bo'lishi mumkin - uni bosganda klaviaturani tozalab, yangi xabar
+    tuzilishiga yo'naltiramiz."""
+    await message.answer(
+        "Yangilanish: bu tugmalar endi xabar ostida (inline) ko'rinadi. /start ni qayta bosing.",
+        reply_markup=ReplyKeyboardRemove(),
+    )
