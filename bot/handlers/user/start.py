@@ -42,23 +42,24 @@ async def cmd_start(
         await message.answer("Siz botdan foydalanish huquqidan mahrum qilingansiz.")
         return
 
-    settings = await SettingsRepo(session).get()
-    welcome_text = get_welcome_text(settings)
-
     is_subscribed, not_subscribed = await check_gate(session, subscription_service, user)
-    if is_subscribed:
-        await finalize_subscription(session, bot, user, referral_service)
-        await session.commit()
-        link = build_referral_link(bot_username, user.tg_id)
-        keyboard = welcome_actions_keyboard(link, settings.share_text or DEFAULT_SHARE_TEXT)
-    else:
+    if not is_subscribed:
         user.is_subscribed = False
         await session.commit()
-        welcome_text += (
-            "\n\nBotning asosiy funksiyalaridan foydalanish uchun quyidagi kanallarga obuna bo'ling "
-            "va \"✅ Obunani tekshirish\" tugmasini bosing:"
+        await message.answer(
+            "Botdan foydalanish uchun avval quyidagi kanallarga obuna bo'ling va "
+            "\"✅ Obunani tekshirish\" tugmasini bosing:",
+            reply_markup=subscription_gate_keyboard(not_subscribed),
         )
-        keyboard = subscription_gate_keyboard(not_subscribed)
+        return
+
+    await finalize_subscription(session, bot, user, referral_service)
+    await session.commit()
+
+    settings = await SettingsRepo(session).get()
+    welcome_text = get_welcome_text(settings)
+    link = build_referral_link(bot_username, user.tg_id)
+    keyboard = welcome_actions_keyboard(link, settings.share_text or DEFAULT_SHARE_TEXT)
 
     if settings.welcome_media_file_id and settings.welcome_media_type == "photo":
         await message.answer_photo(settings.welcome_media_file_id, caption=welcome_text, reply_markup=keyboard)

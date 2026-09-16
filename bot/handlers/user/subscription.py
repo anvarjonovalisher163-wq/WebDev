@@ -2,7 +2,7 @@ from aiogram import Bot, Router
 from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.handlers.user._common import check_gate, finalize_subscription
+from bot.handlers.user._common import check_gate, finalize_subscription, get_welcome_text
 from bot.keyboards.user import (
     CB_CHECK_SUBSCRIPTION,
     DEFAULT_SHARE_TEXT,
@@ -16,8 +16,6 @@ from bot.services.subscription_service import SubscriptionService
 from bot.services.user_service import build_referral_link
 
 router = Router(name="user_subscription")
-
-CONFIRMED_TEXT = "✅ Obuna tasdiqlandi! Botdan foydalanishingiz mumkin."
 
 
 @router.callback_query(lambda c: c.data == CB_CHECK_SUBSCRIPTION)
@@ -44,13 +42,16 @@ async def on_check_subscription(
     await session.commit()
 
     await callback.answer("Barcha kanallarga obuna tasdiqlandi!")
+    await callback.message.edit_reply_markup(reply_markup=None)
+
     settings = await SettingsRepo(session).get()
+    welcome_text = get_welcome_text(settings)
     link = build_referral_link(bot_username, user.tg_id)
     keyboard = welcome_actions_keyboard(link, settings.share_text or DEFAULT_SHARE_TEXT)
 
-    if callback.message.photo:
-        await callback.message.edit_caption(caption=CONFIRMED_TEXT, reply_markup=keyboard)
-    elif callback.message.video:
-        await callback.message.edit_caption(caption=CONFIRMED_TEXT, reply_markup=keyboard)
+    if settings.welcome_media_file_id and settings.welcome_media_type == "photo":
+        await callback.message.answer_photo(settings.welcome_media_file_id, caption=welcome_text, reply_markup=keyboard)
+    elif settings.welcome_media_file_id and settings.welcome_media_type == "video":
+        await callback.message.answer_video(settings.welcome_media_file_id, caption=welcome_text, reply_markup=keyboard)
     else:
-        await callback.message.edit_text(CONFIRMED_TEXT, reply_markup=keyboard)
+        await callback.message.answer(welcome_text, reply_markup=keyboard)
