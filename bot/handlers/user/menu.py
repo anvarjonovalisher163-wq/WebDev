@@ -5,7 +5,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.handlers.user._common import check_gate
+from bot.handlers.user._common import check_gate, get_gate_text
 from bot.keyboards.user import (
     CB_REFRESH_MY_REFERRALS,
     CB_SHOW_INVITE,
@@ -55,8 +55,9 @@ async def _require_ready_user_cb(callback: CallbackQuery, session: AsyncSession,
 
     if not_subscribed:
         await callback.answer("Avval barcha majburiy kanallarga obuna bo'ling.", show_alert=True)
+        settings = await SettingsRepo(session).get()
         await callback.message.answer(
-            "Quyidagi kanallarga obuna bo'ling va \"✅ Obunani tekshirish\" tugmasini bosing:",
+            get_gate_text(settings),
             reply_markup=subscription_gate_keyboard(not_subscribed),
         )
     else:

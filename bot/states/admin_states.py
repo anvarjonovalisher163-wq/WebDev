@@ -8,6 +8,7 @@ class WelcomeStates(StatesGroup):
 
 class ChannelStates(StatesGroup):
     waiting_identifier = State()
+    waiting_gate_text = State()
 
 
 class ReferralContentStates(StatesGroup):

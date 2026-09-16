@@ -6,14 +6,17 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot.handlers.user._common import get_gate_text
 from bot.keyboards.admin import (
     CB_ADMIN_CHANNEL_ADD,
     CB_ADMIN_CHANNELS,
+    CB_ADMIN_CHANNELS_TEXT,
     cancel_keyboard,
     channel_detail_keyboard,
     channels_list_keyboard,
 )
 from bot.repositories.channel_repo import ChannelRepo
+from bot.repositories.settings_repo import SettingsRepo
 from bot.services.audit import log_admin_action
 from bot.states.admin_states import ChannelStates
 
@@ -85,6 +88,32 @@ async def on_channel_identifier_received(
 
     channels = await channel_repo.list_all()
     await message.answer("Kanal qo'shildi.", reply_markup=channels_list_keyboard(channels))
+
+
+@router.callback_query(lambda c: c.data == CB_ADMIN_CHANNELS_TEXT)
+async def on_gate_text_prompt(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
+    settings = await SettingsRepo(session).get()
+    current = get_gate_text(settings)
+    await state.set_state(ChannelStates.waiting_gate_text)
+    await callback.message.edit_text(
+        f"Joriy matn:\n\n{current}\n\n"
+        "Bu matn foydalanuvchi majburiy kanallarga hali obuna bo'lmaganda ko'rsatiladi. "
+        "Yangi matnni yuboring:",
+        reply_markup=cancel_keyboard(),
+    )
+    await callback.answer()
+
+
+@router.message(ChannelStates.waiting_gate_text)
+async def on_gate_text_received(message: Message, state: FSMContext, session: AsyncSession) -> None:
+    settings = await SettingsRepo(session).get()
+    settings.subscription_gate_text = message.html_text
+    await log_admin_action(session, message.from_user.id, "update_subscription_gate_text")
+    await session.commit()
+    await state.clear()
+
+    channels = await ChannelRepo(session).list_all()
+    await message.answer("Obuna so'rovi matni yangilandi.", reply_markup=channels_list_keyboard(channels))
 
 
 @router.callback_query(lambda c: c.data.startswith("admin:channel:"))

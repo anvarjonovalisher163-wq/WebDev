@@ -11,6 +11,7 @@ CB_ADMIN_WELCOME_MEDIA_REMOVE = "admin:welcome_media_remove"
 
 CB_ADMIN_CHANNELS = "admin:channels"
 CB_ADMIN_CHANNEL_ADD = "admin:channel_add"
+CB_ADMIN_CHANNELS_TEXT = "admin:channels_text"
 
 CB_ADMIN_REFERRAL_TEXT = "admin:referral_text"
 CB_ADMIN_REFERRAL_IMAGE = "admin:referral_image"
@@ -105,6 +106,7 @@ def channels_list_keyboard(channels: list[MandatoryChannel]) -> InlineKeyboardMa
             [InlineKeyboardButton(text=f"{status} {channel.title}", callback_data=f"admin:channel:{channel.id}")]
         )
     rows.append([InlineKeyboardButton(text="➕ Kanal qo'shish", callback_data=CB_ADMIN_CHANNEL_ADD)])
+    rows.append([InlineKeyboardButton(text="✍️ Obuna so'rovi matni", callback_data=CB_ADMIN_CHANNELS_TEXT)])
     rows.append([InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 

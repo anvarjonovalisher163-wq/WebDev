@@ -21,6 +21,8 @@ class BotSettings(Base):
     referral_image_file_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     share_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    subscription_gate_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     required_referral_count: Mapped[int] = mapped_column(Integer, default=5)
 
     secret_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)

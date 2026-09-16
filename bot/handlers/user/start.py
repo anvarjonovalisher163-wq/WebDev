@@ -3,7 +3,7 @@ from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.handlers.user._common import check_gate, finalize_subscription, get_welcome_text
+from bot.handlers.user._common import check_gate, finalize_subscription, get_gate_text, get_welcome_text
 from bot.keyboards.user import DEFAULT_SHARE_TEXT, subscription_gate_keyboard, welcome_actions_keyboard
 from bot.repositories.settings_repo import SettingsRepo
 from bot.services.referral_service import ReferralService
@@ -46,9 +46,9 @@ async def cmd_start(
     if not is_subscribed:
         user.is_subscribed = False
         await session.commit()
+        settings = await SettingsRepo(session).get()
         await message.answer(
-            "Botdan foydalanish uchun avval quyidagi kanallarga obuna bo'ling va "
-            "\"✅ Obunani tekshirish\" tugmasini bosing:",
+            get_gate_text(settings),
             reply_markup=subscription_gate_keyboard(not_subscribed),
         )
         return

@@ -13,6 +13,10 @@ from bot.services.secret_link_flow import try_auto_grant_secret_link
 from bot.services.subscription_service import SubscriptionService
 
 DEFAULT_WELCOME = "Assalomu alaykum! Botga xush kelibsiz."
+DEFAULT_GATE_TEXT = (
+    "Botdan foydalanish uchun avval quyidagi kanallarga obuna bo'ling va "
+    "\"✅ Obunani tekshirish\" tugmasini bosing:"
+)
 
 
 async def check_gate(
@@ -76,3 +80,7 @@ async def finalize_subscription(
 
 def get_welcome_text(settings: BotSettings) -> str:
     return settings.welcome_text or DEFAULT_WELCOME
+
+
+def get_gate_text(settings: BotSettings) -> str:
+    return settings.subscription_gate_text or DEFAULT_GATE_TEXT
