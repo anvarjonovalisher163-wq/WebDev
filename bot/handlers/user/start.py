@@ -38,24 +38,23 @@ async def cmd_start(message: Message, command: CommandObject, session: AsyncSess
     settings = await SettingsRepo(session).get()
     welcome_text = get_welcome_text(settings)
 
-    if settings.welcome_media_file_id and settings.welcome_media_type == "photo":
-        await message.answer_photo(settings.welcome_media_file_id, caption=welcome_text)
-    elif settings.welcome_media_file_id and settings.welcome_media_type == "video":
-        await message.answer_video(settings.welcome_media_file_id, caption=welcome_text)
-    else:
-        await message.answer(welcome_text)
-
     is_subscribed, not_subscribed = await check_gate(session, subscription_service, user)
-    if not is_subscribed:
+    if is_subscribed:
+        await finalize_subscription(session, bot, user, referral_service)
+        await session.commit()
+        keyboard = main_menu_keyboard()
+    else:
         user.is_subscribed = False
         await session.commit()
-        await message.answer(
-            "Botning asosiy funksiyalaridan foydalanish uchun quyidagi kanallarga obuna bo'ling "
-            "va \"Obunani tekshirish\" tugmasini bosing:",
-            reply_markup=subscription_gate_keyboard(not_subscribed),
+        welcome_text += (
+            "\n\nBotning asosiy funksiyalaridan foydalanish uchun quyidagi kanallarga obuna bo'ling "
+            "va \"✅ Obunani tekshirish\" tugmasini bosing:"
         )
-        return
+        keyboard = subscription_gate_keyboard(not_subscribed)
 
-    await finalize_subscription(session, bot, user, referral_service)
-    await session.commit()
-    await message.answer("Asosiy menyu:", reply_markup=main_menu_keyboard())
+    if settings.welcome_media_file_id and settings.welcome_media_type == "photo":
+        await message.answer_photo(settings.welcome_media_file_id, caption=welcome_text, reply_markup=keyboard)
+    elif settings.welcome_media_file_id and settings.welcome_media_type == "video":
+        await message.answer_video(settings.welcome_media_file_id, caption=welcome_text, reply_markup=keyboard)
+    else:
+        await message.answer(welcome_text, reply_markup=keyboard)
