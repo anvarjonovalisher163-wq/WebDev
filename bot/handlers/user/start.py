@@ -4,17 +4,19 @@ from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.user._common import check_gate, finalize_subscription, get_welcome_text
-from bot.keyboards.user import main_menu_keyboard, subscription_gate_keyboard
+from bot.keyboards.user import invite_prompt_keyboard, main_menu_keyboard, subscription_gate_keyboard
 from bot.repositories.settings_repo import SettingsRepo
 from bot.services.referral_service import ReferralService
 from bot.services.subscription_service import SubscriptionService
-from bot.services.user_service import UserService
+from bot.services.user_service import UserService, build_referral_link
 
 router = Router(name="user_start")
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, command: CommandObject, session: AsyncSession, bot: Bot) -> None:
+async def cmd_start(
+    message: Message, command: CommandObject, session: AsyncSession, bot: Bot, bot_username: str
+) -> None:
     tg_user = message.from_user
 
     subscription_service = SubscriptionService(bot)
@@ -58,3 +60,7 @@ async def cmd_start(message: Message, command: CommandObject, session: AsyncSess
         await message.answer_video(settings.welcome_media_file_id, caption=welcome_text, reply_markup=keyboard)
     else:
         await message.answer(welcome_text, reply_markup=keyboard)
+
+    if is_subscribed:
+        link = build_referral_link(bot_username, user.tg_id)
+        await message.answer("👥 Do'stlaringizni taklif qiling!", reply_markup=invite_prompt_keyboard(link))

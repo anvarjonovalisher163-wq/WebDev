@@ -3,16 +3,24 @@ from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.user._common import check_gate, finalize_subscription
-from bot.keyboards.user import CB_CHECK_SUBSCRIPTION, main_menu_keyboard, subscription_gate_keyboard
+from bot.keyboards.user import (
+    CB_CHECK_SUBSCRIPTION,
+    invite_prompt_keyboard,
+    main_menu_keyboard,
+    subscription_gate_keyboard,
+)
 from bot.repositories.user_repo import UserRepo
 from bot.services.referral_service import ReferralService
 from bot.services.subscription_service import SubscriptionService
+from bot.services.user_service import build_referral_link
 
 router = Router(name="user_subscription")
 
 
 @router.callback_query(lambda c: c.data == CB_CHECK_SUBSCRIPTION)
-async def on_check_subscription(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
+async def on_check_subscription(
+    callback: CallbackQuery, session: AsyncSession, bot: Bot, bot_username: str
+) -> None:
     user = await UserRepo(session).get_by_tg_id(callback.from_user.id)
     if user is None or user.is_blocked:
         await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
@@ -37,3 +45,6 @@ async def on_check_subscription(callback: CallbackQuery, session: AsyncSession, 
     await callback.message.answer(
         "✅ Obuna tasdiqlandi! Botdan foydalanishingiz mumkin.", reply_markup=main_menu_keyboard()
     )
+
+    link = build_referral_link(bot_username, user.tg_id)
+    await callback.message.answer("👥 Do'stlaringizni taklif qiling!", reply_markup=invite_prompt_keyboard(link))

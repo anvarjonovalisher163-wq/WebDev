@@ -10,6 +10,7 @@ from bot.keyboards.user import (
     BTN_INVITE,
     BTN_MY_REFERRALS,
     CB_REFRESH_MY_REFERRALS,
+    CB_SHOW_INVITE,
     my_referrals_refresh_keyboard,
     subscription_gate_keyboard,
 )
@@ -44,12 +45,7 @@ async def require_ready_user(message: Message, session: AsyncSession, bot: Bot) 
     return user
 
 
-@router.message(F.text == BTN_INVITE)
-async def on_invite(message: Message, session: AsyncSession, bot: Bot, bot_username: str) -> None:
-    user = await require_ready_user(message, session, bot)
-    if user is None:
-        return
-
+async def _send_invite_content(target: Message, session: AsyncSession, user: User, bot_username: str) -> None:
     settings = await SettingsRepo(session).get()
     link = build_referral_link(bot_username, user.tg_id)
     template = settings.referral_text or "Yopiq kanalga qo'shilish uchun botga kiring: {referral_link}"
@@ -59,9 +55,27 @@ async def on_invite(message: Message, session: AsyncSession, bot: Bot, bot_usern
     await session.commit()
 
     if settings.referral_image_file_id:
-        await message.answer_photo(settings.referral_image_file_id, caption=text)
+        await target.answer_photo(settings.referral_image_file_id, caption=text)
     else:
-        await message.answer(text)
+        await target.answer(text)
+
+
+@router.message(F.text == BTN_INVITE)
+async def on_invite(message: Message, session: AsyncSession, bot: Bot, bot_username: str) -> None:
+    user = await require_ready_user(message, session, bot)
+    if user is None:
+        return
+    await _send_invite_content(message, session, user, bot_username)
+
+
+@router.callback_query(lambda c: c.data == CB_SHOW_INVITE)
+async def on_invite_inline(callback: CallbackQuery, session: AsyncSession, bot: Bot, bot_username: str) -> None:
+    user = await UserRepo(session).get_by_tg_id(callback.from_user.id)
+    if user is None or user.is_blocked:
+        await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
+        return
+    await _send_invite_content(callback.message, session, user, bot_username)
+    await callback.answer()
 
 
 def _build_my_referrals_text(user: User, progress: dict) -> str:
