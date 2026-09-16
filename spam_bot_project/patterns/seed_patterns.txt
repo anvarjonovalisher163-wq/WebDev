@@ -1,0 +1,26 @@
+# Standart spam kalit so'zlari/pattern ro'yxati (regex, katta-kichik harf farqlanmaydi).
+# Har bir qator alohida pattern. "#" bilan boshlangan qatorlar izoh hisoblanadi.
+
+# Moliyaviy firibgarlik / tez boy bo'lish va'dalari
+\bkunlik\s*\$?\d+\s*(dollar|so'm|manat)\b
+\btez\s+pul\s+top\b
+\bpassiv\s+daromad\b.{0,20}\btelegram\b
+\binvestitsiya\b.{0,20}\bkafolat\b
+\bbepul\s+kripto\b
+\bbinance.{0,10}bonus\b
+\bforex\s+signal\b
+
+# Kattalar uchun kontent / flirt-spam tuzoqlari
+\bonlyfans\b
+\bintim\s+xizmat\b
+\bvip\s+video\s+chat\b
+\bl(o|0)veg?irl\d{2,}\b
+
+# Zararli dastur / fishing
+\.apk(?=\s|$)
+\.exe(?=\s|$)
+bit\.ly\/\w+.{0,15}(yutuq|bonus|sovg'a)
+
+# Guruh reklama bombardimoni
+\bqo'sh(iling|ing)\b.{0,10}https?:\/\/t\.me\/
+\bo'sish\s+xizmat\b.{0,15}(obunachi|a'zo)

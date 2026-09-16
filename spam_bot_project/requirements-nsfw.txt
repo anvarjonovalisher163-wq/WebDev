@@ -1,0 +1,4 @@
+# Ixtiyoriy: profil rasmlarini mahalliy darajada NSFW skanerlash uchun.
+# Og'ir (ONNX modelini yuklab oladi), shuning uchun asosiy requirements.txt'dan
+# ajratilgan. O'rnatish: pip install -r requirements-nsfw.txt
+nudenet==3.4.2
