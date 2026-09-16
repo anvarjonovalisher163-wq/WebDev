@@ -33,9 +33,11 @@ async def on_welcome_menu(callback: CallbackQuery, session: AsyncSession) -> Non
 async def on_welcome_text_prompt(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(WelcomeStates.waiting_text)
     await callback.message.edit_text(
-        "Yangi Welcome matnini yuboring (HTML formatlash: &lt;b&gt;, &lt;i&gt;, havolalar mumkin).\n"
-        "Foydalanuvchining ismini avtomatik joylashtirish uchun {ism} o'zgaruvchisidan foydalaning.\n\n"
-        "Masalan: \"Assalomu alaykum, {ism}! Botga xush kelibsiz.\"",
+        "Yangi Welcome matnini yuboring (HTML formatlash: &lt;b&gt;, &lt;i&gt;, havolalar mumkin).\n\n"
+        "Quyidagi o'zgaruvchilardan foydalanishingiz mumkin:\n"
+        "{ism} - foydalanuvchining ismi\n"
+        "{referral_link} - foydalanuvchining unikal referral havolasi\n\n"
+        "Masalan: \"Assalomu alaykum, {ism}! Shaxsiy havolangiz: {referral_link}\"",
         reply_markup=cancel_keyboard(),
     )
     await callback.answer()

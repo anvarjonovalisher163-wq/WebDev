@@ -78,9 +78,9 @@ async def finalize_subscription(
         pass
 
 
-def get_welcome_text(settings: BotSettings, first_name: str) -> str:
+def get_welcome_text(settings: BotSettings, first_name: str, referral_link: str) -> str:
     text = settings.welcome_text or DEFAULT_WELCOME
-    return text.replace("{ism}", first_name)
+    return text.replace("{ism}", first_name).replace("{referral_link}", referral_link)
 
 
 def get_gate_text(settings: BotSettings) -> str:
