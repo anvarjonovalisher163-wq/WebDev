@@ -61,6 +61,25 @@ docker compose up -d --build
 
 Baza jadvallari bot birinchi marta ishga tushganda avtomatik yaratiladi.
 
+### Telefondan joylashtirish (kompyutersiz)
+
+Docker/terminal shart emas — [Railway](https://railway.app) yoki
+[Render](https://render.com) kabi platformalarga brauzer orqali joylashtirish
+mumkin:
+
+1. Railway'da **New Project → Deploy from GitHub repo** → ushbu repo, "Root
+   Directory" sifatida `spam_bot_project`ni ko'rsating (Railway `Dockerfile`ni
+   avtomatik topib quradi).
+2. **+ New → Database → PostgreSQL** qo'shing.
+3. Bot xizmatining **Variables** bo'limida quyidagilarni kiriting:
+   - `BOT_TOKEN`, `ADMIN_TELEGRAM_IDS`, `KEY_ENCRYPTION_SECRET`
+   - `DATABASE_URL` — Railway Postgres'ning o'zi taklif qiladigan
+     `${{Postgres.DATABASE_URL}}` referensini tanlang (POSTGRES_* alohida
+     kerak emas)
+   - `BASE_URL` — Railway avtomatik bergan ommaviy domenni (`https://...up.railway.app`)
+     "Settings → Networking → Generate Domain" orqali oling va shu yerga qo'ying
+4. Deploy tugmasini bosing — bot avtomatik quriladi va ishga tushadi.
+
 ### NSFW profil rasm skaneri (ixtiyoriy)
 
 ```bash
