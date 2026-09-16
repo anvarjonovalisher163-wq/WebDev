@@ -9,6 +9,7 @@ from bot.repositories.referral_repo import ReferralRepo
 from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
 from bot.services.referral_service import ReferralService
+from bot.services.secret_link_flow import try_auto_grant_secret_link
 from bot.services.subscription_service import SubscriptionService
 
 DEFAULT_WELCOME = "Assalomu alaykum! Botga xush kelibsiz."
@@ -62,10 +63,11 @@ async def finalize_subscription(
             ),
         )
         if progress["remaining"] == 0:
-            await bot.send_message(
-                referrer.tg_id,
-                "Tabriklaymiz! Siz barcha shartlarni bajardingiz. Endi maxfiy havolani olishingiz mumkin.",
+            secret_link_text = await try_auto_grant_secret_link(
+                session, bot, referrer, settings, referral_service
             )
+            if secret_link_text:
+                await bot.send_message(referrer.tg_id, secret_link_text)
     except TelegramForbiddenError:
         referrer.is_blocked = True
     except TelegramBadRequest:

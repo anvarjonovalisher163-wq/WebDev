@@ -12,7 +12,6 @@ CB_REFRESH_MY_REFERRALS = "refresh_my_referrals"
 
 BTN_INVITE = "🔗 Taklif qilish"
 BTN_MY_REFERRALS = "📊 Mening takliflarim"
-BTN_SECRET_LINK = "🔐 Maxfiy havolani olish"
 
 
 def subscription_gate_keyboard(channels: list[MandatoryChannel]) -> InlineKeyboardMarkup:
@@ -29,10 +28,7 @@ def subscription_gate_keyboard(channels: list[MandatoryChannel]) -> InlineKeyboa
 
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text=BTN_INVITE), KeyboardButton(text=BTN_MY_REFERRALS)],
-            [KeyboardButton(text=BTN_SECRET_LINK)],
-        ],
+        keyboard=[[KeyboardButton(text=BTN_INVITE), KeyboardButton(text=BTN_MY_REFERRALS)]],
         resize_keyboard=True,
     )
 

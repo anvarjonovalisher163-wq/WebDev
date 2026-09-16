@@ -13,10 +13,12 @@ from bot.keyboards.user import (
     my_referrals_refresh_keyboard,
     subscription_gate_keyboard,
 )
+from bot.models.settings import BotSettings
 from bot.models.user import User
 from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
 from bot.services.referral_service import ReferralService
+from bot.services.secret_link_flow import try_auto_grant_secret_link
 from bot.services.subscription_service import SubscriptionService
 from bot.services.user_service import build_referral_link
 
@@ -62,12 +64,7 @@ async def on_invite(message: Message, session: AsyncSession, bot: Bot, bot_usern
         await message.answer(text)
 
 
-async def _build_my_referrals_text(session: AsyncSession, bot: Bot, user: User) -> str:
-    settings = await SettingsRepo(session).get()
-    subscription_service = SubscriptionService(bot)
-    referral_service = ReferralService(session, subscription_service)
-    progress = await referral_service.get_progress(user.id, settings.required_referral_count)
-
+def _build_my_referrals_text(user: User, progress: dict) -> str:
     if user.joined_private_channel:
         secret_status = "siz kanaldasiz ✅"
     elif user.secret_link_taken:
@@ -85,14 +82,29 @@ async def _build_my_referrals_text(session: AsyncSession, bot: Bot, user: User) 
     )
 
 
+async def _render_my_referrals(
+    session: AsyncSession, bot: Bot, user: User, settings: BotSettings, referral_service: ReferralService
+) -> tuple[str, Optional[str]]:
+    """Statistika matnini va (agar shu payt shartlar bajarilgan bo'lsa) avtomatik
+    berilgan maxfiy havola matnini qaytaradi."""
+    secret_link_text = await try_auto_grant_secret_link(session, bot, user, settings, referral_service)
+    progress = await referral_service.get_progress(user.id, settings.required_referral_count)
+    return _build_my_referrals_text(user, progress), secret_link_text
+
+
 @router.message(F.text == BTN_MY_REFERRALS)
 async def on_my_referrals(message: Message, session: AsyncSession, bot: Bot) -> None:
     user = await require_ready_user(message, session, bot)
     if user is None:
         return
 
-    text = await _build_my_referrals_text(session, bot, user)
+    settings = await SettingsRepo(session).get()
+    referral_service = ReferralService(session, SubscriptionService(bot))
+    text, secret_link_text = await _render_my_referrals(session, bot, user, settings, referral_service)
+
     await message.answer(text, reply_markup=my_referrals_refresh_keyboard())
+    if secret_link_text:
+        await message.answer(secret_link_text)
 
 
 @router.callback_query(lambda c: c.data == CB_REFRESH_MY_REFERRALS)
@@ -102,9 +114,15 @@ async def on_refresh_my_referrals(callback: CallbackQuery, session: AsyncSession
         await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
         return
 
-    text = await _build_my_referrals_text(session, bot, user)
+    settings = await SettingsRepo(session).get()
+    referral_service = ReferralService(session, SubscriptionService(bot))
+    text, secret_link_text = await _render_my_referrals(session, bot, user, settings, referral_service)
+
     try:
         await callback.message.edit_text(text, reply_markup=my_referrals_refresh_keyboard())
         await callback.answer("Yangilandi")
     except TelegramBadRequest:
         await callback.answer("O'zgarish yo'q")
+
+    if secret_link_text:
+        await callback.message.answer(secret_link_text)
