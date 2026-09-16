@@ -57,7 +57,7 @@ async def cmd_start(
     await session.commit()
 
     settings = await SettingsRepo(session).get()
-    welcome_text = get_welcome_text(settings)
+    welcome_text = get_welcome_text(settings, user.first_name)
     link = build_referral_link(bot_username, user.tg_id)
     keyboard = welcome_actions_keyboard(link, settings.share_text or DEFAULT_SHARE_TEXT)
 
