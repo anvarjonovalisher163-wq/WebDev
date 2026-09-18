@@ -2,8 +2,9 @@
 
 Guruhlarni spam, ochiq-sochiq kontent va zararli havolalardan avtomatik
 himoya qiluvchi, ko'p guruhli (multi-tenant), o'z-o'ziga xizmat ko'rsatuvchi
-Telegram boti. Har kim botni o'z guruhiga qo'shib, `/enable` buyrug'i bilan
-himoyani yoqishi mumkin.
+Telegram boti. Har kim botni o'z guruhiga qo'shib, **admin qilib
+tayinlashi** bilanoq himoya avtomatik yoqiladi — qo'shimcha buyruq kerak
+emas.
 
 Bu loyiha ushbu repodagi referral botdan mustaqil, alohida bot sifatida
 ishlaydi (o'z Docker, baza va konfiguratsiyasi bilan).
@@ -101,18 +102,20 @@ o'chirilgan bo'ladi.
 ### Botga kerakli Telegram huquqlari
 
 Botni guruhga qo'shib, **Xabarlarni o'chirish** va **Foydalanuvchilarni
-bloklash/cheklash** huquqlariga ega admin qiling, so'ng guruhda `/enable`
-buyrug'ini bering. `/setkey` uchun BotFather'da maxfiylik rejimini
-o'chirish shart emas — bot allaqachon barcha xabarlarni ko'rish huquqiga ega
-bo'lishi kerak (`/setprivacy` → Disable), aks holda oddiy a'zo xabarlarini
-o'qiy olmaydi.
+bloklash/cheklash** huquqlariga ega **admin** qiling — shu zahoti himoya
+avtomatik yoqiladi (bot o'zining "administrator qilindi" hodisasini kuzatib
+turadi, qo'shimcha buyruq shart emas). `/setkey` uchun BotFather'da
+maxfiylik rejimini o'chirish shart emas — bot allaqachon barcha xabarlarni
+ko'rish huquqiga ega bo'lishi kerak (`/setprivacy` → Disable), aks holda
+oddiy a'zo xabarlarini o'qiy olmaydi.
 
 ## Buyruqlar
 
 | Buyruq | Kim uchun | Vazifasi |
 |---|---|---|
-| `/enable` · `/disable` | Guruh adminlari | Himoyani yoqish/o'chirish |
-| `/obuna` | Guruh adminlari | Telegram Stars orqali obunani to'lash/uzaytirish |
+| *(yo'q — admin qilinishi bilanoq avtomatik)* | — | Himoyani yoqish |
+| `/disable` | Guruh adminlari | Himoyani o'chirish |
+| `/obuna` | Guruh adminlari | Telegram Stars orqali obunani to'lash/uzaytirish (shaxsiy xabarda) |
 | `/setkey` | Guruh adminlari | Gemini kalitini saqlash (shaxsiy, bir martalik havola) |
 | `/ban` · `/mute` | Guruh adminlari | Javob berilgan foydalanuvchini moderatsiya qilish |
 | `/tokens` | Guruh adminlari | Gemini tokenlaridan foydalanish + xarajat |
@@ -122,11 +125,13 @@ o'qiy olmaydi.
 
 ## Obuna tizimi (Telegram Stars)
 
-Yangi guruh `/enable` qilinganda `TRIAL_DAYS` (standart 3) kun bepul ishlaydi.
-Muddat tugagach, himoya avtomatik to'xtaydi va guruh admini `/obuna` buyrug'i
-bilan Telegram Stars orqali to'lov qiladi (`SUBSCRIPTION_PRICE_STARS` ⭐,
-`SUBSCRIPTION_PERIOD_DAYS` kunga). To'lov Telegram'ning o'zi tomonidan
-tasdiqlanadi — chek yuborish yoki qo'lda tekshirish shart emas.
+Bot **admin qilib tayinlangan zahoti** `TRIAL_DAYS` (standart 3) kun bepul
+ishlaydi. Muddat tugagach, himoya avtomatik to'xtaydi va guruh admini
+guruhda `/obuna` deb yozadi — bot unga **shaxsiy xabarda** Telegram Stars
+invoysini yuboradi (`SUBSCRIPTION_PRICE_STARS` ⭐, `SUBSCRIPTION_PERIOD_DAYS`
+kunga). To'lov Telegram'ning o'zi tomonidan tasdiqlanadi — chek yuborish
+yoki qo'lda tekshirish shart emas. Bot guruhdan admin huquqidan olib
+tashlansa yoki chiqarilsa, himoya avtomatik o'chiriladi.
 
 **Muhim:** to'lov "Stars" ko'rinishida keladi, to'g'ridan-to'g'ri pul emas.
 Ularni haqiqiy pulga aylantirish uchun operator [Fragment](https://fragment.com)

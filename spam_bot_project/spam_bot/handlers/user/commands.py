@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.filters import Command
@@ -12,10 +10,6 @@ from spam_bot.repositories.group_repo import GroupRepo
 from spam_bot.services.key_link_service import key_link_service
 from spam_bot.utils.copy import (
     DISABLE_SUCCESS,
-    ENABLE_EXPIRED_NOTICE,
-    ENABLE_SUCCESS,
-    ENABLE_TRIAL_STARTED,
-    GROUP_LIMIT_REACHED,
     HELP_TEXT,
     PRIVACY_TEXT,
     SETKEY_CANNOT_DM,
@@ -41,29 +35,6 @@ async def cmd_help(message: Message) -> None:
 @router.message(Command("privacy"))
 async def cmd_privacy(message: Message) -> None:
     await message.answer(PRIVACY_TEXT)
-
-
-@router.message(Command("enable"), F.chat.type.in_({"group", "supergroup"}), IsGroupAdmin())
-async def cmd_enable(message: Message, session: AsyncSession) -> None:
-    repo = GroupRepo(session)
-    is_new = await repo.get_by_chat_id(message.chat.id) is None
-    group = await repo.get_or_create(message.chat.id, message.chat.title, message.from_user.id, settings.trial_days)
-    if not group.enabled:
-        active_count = await repo.count_enabled_for_owner(message.from_user.id)
-        if active_count >= settings.max_groups_per_owner:
-            await message.answer(GROUP_LIMIT_REACHED)
-            return
-        await repo.set_enabled(group, True)
-        await session.commit()
-
-    now = datetime.now(timezone.utc)
-    if group.access_until is not None and group.access_until < now:
-        await message.answer(ENABLE_EXPIRED_NOTICE)
-    elif is_new and group.access_until is not None:
-        days_left = max(1, (group.access_until - now).days)
-        await message.answer(ENABLE_TRIAL_STARTED.format(days=days_left))
-    else:
-        await message.answer(ENABLE_SUCCESS)
 
 
 @router.message(Command("disable"), F.chat.type.in_({"group", "supergroup"}), IsGroupAdmin())

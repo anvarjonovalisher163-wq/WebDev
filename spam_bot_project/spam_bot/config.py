@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     gemini_price_in: float = 0.30
     gemini_price_out: float = 2.50
 
-    # Bitta operator bo'lmagan foydalanuvchi /enable qilishi mumkin bo'lgan
+    # Bitta operator bo'lmagan foydalanuvchi botni admin qilib qo'sha oladigan
     # maksimal guruhlar soni (suiiste'moldan himoya).
     max_groups_per_owner: int = 20
 

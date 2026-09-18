@@ -5,6 +5,8 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import ChatPermissions
 from loguru import logger
 
+from spam_bot.services.ban_tracker import mark_banned
+
 MUTE_HOURS = 24
 
 _NO_PERMISSIONS = ChatPermissions(
@@ -66,6 +68,7 @@ async def unmute_user(bot: Bot, chat_id: int, user_id: int) -> bool:
 async def ban_user(bot: Bot, chat_id: int, user_id: int) -> bool:
     try:
         await bot.ban_chat_member(chat_id, user_id)
+        mark_banned(chat_id, user_id)
         return True
     except TelegramBadRequest as exc:
         logger.warning(f"Foydalanuvchini bloklab bo'lmadi ({chat_id}/{user_id}): {exc}")

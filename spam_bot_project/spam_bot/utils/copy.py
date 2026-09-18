@@ -1,17 +1,16 @@
 START_TEXT = (
     "👋 Salom! Men — guruhlarni spam, ochiq-sochiq kontent va zararli "
     "havolalardan avtomatik himoya qiluvchi botman.\n\n"
-    "Meni guruhingizga admin qilib qo'shing va u yerda /enable buyrug'ini "
-    "bering — himoya darhol ishga tushadi.\n\n"
+    "Meni guruhingizga **admin** qilib qo'shing — himoya darhol o'zi ishga "
+    "tushadi, qo'shimcha buyruq kerak emas.\n\n"
     "Barcha buyruqlar ro'yxati uchun /help ni bosing."
 )
 
 HELP_TEXT = (
     "🛡️ <b>Spam Himoya Boti</b>\n\n"
-    "Ushbu bot guruhingizni spam, ochiq-sochiq kontent va zararli havolalardan "
-    "avtomatik himoya qiladi.\n\n"
+    "Meni guruhingizga admin qilib qo'shing — himoya avtomatik yoqiladi, "
+    "hech qanday buyruq kerak emas.\n\n"
     "<b>Buyruqlar:</b>\n"
-    "/enable — guruh uchun himoyani yoqish (faqat guruh adminlari)\n"
     "/disable — himoyani o'chirish (faqat guruh adminlari)\n"
     "/obuna — Telegram Stars orqali obunani to'lash/uzaytirish\n"
     "/setkey — sun'iy intellekt moderatsiyasi uchun shaxsiy Gemini kalitini saqlash\n"
@@ -31,9 +30,9 @@ PRIVACY_TEXT = (
     "tozalanadi."
 )
 
-ENABLE_SUCCESS = "✅ Himoya yoqildi. Bot endi spam, NSFW va zararli havolalarni kuzatadi."
 ENABLE_TRIAL_STARTED = (
-    "✅ Himoya yoqildi! Sizga {days} kunlik bepul sinov muddati berildi.\n"
+    "✅ Admin qilib tayinlandim — himoya avtomatik yoqildi! Sizga {days} kunlik "
+    "bepul sinov muddati berildi.\n"
     "Muddat tugagach, davom etish uchun /obuna buyrug'i orqali Telegram Stars bilan to'lov qilishingiz kerak bo'ladi."
 )
 ENABLE_EXPIRED_NOTICE = (
@@ -47,6 +46,8 @@ SUBSCRIPTION_INVOICE_TITLE = "Spam Himoya Boti — obuna"
 SUBSCRIPTION_INVOICE_DESCRIPTION = "\"{group}\" guruhi uchun {days} kunlik himoya obunasi."
 SUBSCRIPTION_LABEL = "Obuna ({days} kun)"
 SUBSCRIPTION_GROUP_ONLY = "Bu buyruq faqat guruh ichida ishlaydi. Iltimos, guruhda /obuna deb yozing."
+SUBSCRIPTION_SENT_TO_DM = "📩 To'lov invoysi sizga shaxsiy xabarlarda yuborildi."
+SUBSCRIPTION_CANNOT_DM = "❗️ Sizga shaxsiy xabar yubora olmadim. Avval botga /start bosing, so'ng qayta urinib ko'ring."
 SUBSCRIPTION_PAID_GROUP = "✅ To'lov qabul qilindi! Himoya {until} sanasigacha faol."
 SUBSCRIPTION_PAID_DM = "✅ Rahmat! \"{group}\" guruhi uchun to'lovingiz qabul qilindi, himoya {until} sanasigacha faol."
 

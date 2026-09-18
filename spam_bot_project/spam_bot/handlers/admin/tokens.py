@@ -23,7 +23,7 @@ def _cost(input_tokens: int, output_tokens: int) -> float:
 async def cmd_tokens(message: Message, session: AsyncSession) -> None:
     group = await GroupRepo(session).get_by_chat_id(message.chat.id)
     if group is None:
-        await message.answer("Bu guruh uchun ma'lumot topilmadi. Avval /enable buyrug'ini bering.")
+        await message.answer("Bu guruh uchun ma'lumot topilmadi. Botni admin qilib qo'shganingizga ishonch hosil qiling.")
         return
 
     usage_repo = UsageRepo(session)

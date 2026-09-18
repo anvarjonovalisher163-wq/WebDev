@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.filters import Command
@@ -13,12 +11,14 @@ from spam_bot.repositories.group_repo import GroupRepo
 from spam_bot.repositories.payment_log_repo import PaymentLogRepo
 from spam_bot.services.notify import notify_operators
 from spam_bot.utils.copy import (
+    SUBSCRIPTION_CANNOT_DM,
     SUBSCRIPTION_GROUP_ONLY,
     SUBSCRIPTION_INVOICE_DESCRIPTION,
     SUBSCRIPTION_INVOICE_TITLE,
     SUBSCRIPTION_LABEL,
     SUBSCRIPTION_PAID_DM,
     SUBSCRIPTION_PAID_GROUP,
+    SUBSCRIPTION_SENT_TO_DM,
 )
 
 router = Router(name="subscription")
@@ -26,20 +26,29 @@ router = Router(name="subscription")
 _PAYLOAD_PREFIX = "sub"
 
 
-@router.message(Command("obuna"), F.chat.type.in_({"group", "supergroup"}), IsGroupAdmin())
-async def cmd_obuna(message: Message, bot: Bot) -> None:
-    payload = f"{_PAYLOAD_PREFIX}:{message.chat.id}:{message.from_user.id}"
+async def _send_invoice(bot: Bot, target_chat_id: int, group_chat_id: int, group_title: str | None, admin_id: int) -> None:
+    payload = f"{_PAYLOAD_PREFIX}:{group_chat_id}:{admin_id}"
     await bot.send_invoice(
-        chat_id=message.chat.id,
+        chat_id=target_chat_id,
         title=SUBSCRIPTION_INVOICE_TITLE,
         description=SUBSCRIPTION_INVOICE_DESCRIPTION.format(
-            group=message.chat.title or str(message.chat.id), days=settings.subscription_period_days
+            group=group_title or str(group_chat_id), days=settings.subscription_period_days
         ),
         payload=payload,
         provider_token="",  # Telegram Stars uchun bo'sh qoldiriladi
         currency="XTR",
         prices=[LabeledPrice(label=SUBSCRIPTION_LABEL.format(days=settings.subscription_period_days), amount=settings.subscription_price_stars)],
     )
+
+
+@router.message(Command("obuna"), F.chat.type.in_({"group", "supergroup"}), IsGroupAdmin())
+async def cmd_obuna(message: Message, bot: Bot) -> None:
+    try:
+        await _send_invoice(bot, message.from_user.id, message.chat.id, message.chat.title, message.from_user.id)
+    except TelegramForbiddenError:
+        await message.answer(SUBSCRIPTION_CANNOT_DM)
+        return
+    await message.answer(SUBSCRIPTION_SENT_TO_DM)
 
 
 @router.message(Command("obuna"), F.chat.type == "private")

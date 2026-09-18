@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timezone
 
 from aiogram import Bot
@@ -20,11 +21,14 @@ from spam_bot.services.pattern_service import PatternService
 from spam_bot.services.profile_scan_service import scan_user_profile
 from spam_bot.services.raid_detector import raid_detector
 from spam_bot.services.ratelimit import SlidingWindowRateLimiter
-from spam_bot.utils.copy import ACTION_LABELS, OPERATOR_NOTICE_TEMPLATE, REASON_LABELS
+from spam_bot.utils.copy import ACTION_LABELS, ENABLE_EXPIRED_NOTICE, OPERATOR_NOTICE_TEMPLATE, REASON_LABELS
 
 pattern_service = PatternService()
 ai_moderation_service = AIModerationService(settings.gemini_model)
 ai_rate_limiter = SlidingWindowRateLimiter(max_per_minute=20)
+
+_EXPIRY_NOTICE_COOLDOWN = 24 * 3600  # bir guruhga kuniga bir marta eslatma
+_expiry_notified: dict[int, float] = {}
 
 
 class MessageModerationService:
@@ -42,6 +46,11 @@ class MessageModerationService:
         if group is None or not group.enabled:
             return
         if group.access_until is not None and group.access_until < datetime.now(timezone.utc):
+            last_notified = _expiry_notified.get(group.chat_id)
+            now_mono = time.monotonic()
+            if last_notified is None or now_mono - last_notified > _EXPIRY_NOTICE_COOLDOWN:
+                _expiry_notified[group.chat_id] = now_mono
+                await bot.send_message(group.chat_id, ENABLE_EXPIRED_NOTICE)
             return
 
         profile_reason = await scan_user_profile(bot, group.chat_id, message.from_user.id)

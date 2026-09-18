@@ -7,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from spam_bot.keyboards.moderation import unban_keyboard
 from spam_bot.repositories.group_repo import GroupRepo
 from spam_bot.repositories.spam_log_repo import SpamLogRepo
+from spam_bot.services.ban_tracker import was_recently_banned
 from spam_bot.services.crypto_service import CryptoService
-from spam_bot.services.moderation_actions import ban_user
+from spam_bot.services.moderation_actions import ban_user, delete_message_safe
 from spam_bot.services.moderation_service import MessageModerationService
 from spam_bot.services.notify import notify_operators
 from spam_bot.services.profile_scan_service import scan_user_profile
@@ -43,6 +44,7 @@ async def on_new_members(message: Message, bot: Bot, session: AsyncSession) -> N
         if reason is None:
             continue
         await ban_user(bot, message.chat.id, member.id)
+        await delete_message_safe(bot, message.chat.id, message.message_id)  # "X guruhga qo'shildi" xabari
         await SpamLogRepo(session).add(message.chat.id, member.id, None, reason=reason, action="ban")
         await session.commit()
         operator_text = OPERATOR_NOTICE_TEMPLATE.format(
@@ -52,6 +54,17 @@ async def on_new_members(message: Message, bot: Bot, session: AsyncSession) -> N
             action=ACTION_LABELS["ban"],
         )
         await notify_operators(bot, operator_text, reply_markup=unban_keyboard(message.chat.id, member.id))
+
+
+@router.message(F.chat.type.in_({"group", "supergroup"}), F.left_chat_member)
+async def on_member_left(message: Message, bot: Bot) -> None:
+    left_user = message.left_chat_member
+    if left_user is None:
+        return
+    if was_recently_banned(message.chat.id, left_user.id):
+        # Bot bloklagan foydalanuvchi uchun Telegram avtomatik yaratgan
+        # "X guruhdan chiqarildi" xabarini ham izsiz tozalaymiz.
+        await delete_message_safe(bot, message.chat.id, message.message_id)
 
 
 @router.message(F.chat.type.in_({"group", "supergroup"}), F.text | F.caption)
