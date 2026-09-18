@@ -1,7 +1,6 @@
 from loguru import logger
 
-# Aniq behayo deb hisoblanadigan NudeNet klass yorliqlari (kiyimli/yarim-ochiq
-# rasmlarga tegilmaydi — faqat yuqori ishonch bilan aniq holatlar).
+# To'liq ochiq (yalang'och) holatlar — o'rtacha ishonch darajasida ham bloklanadi.
 _EXPLICIT_LABELS = {
     "FEMALE_GENITALIA_EXPOSED",
     "MALE_GENITALIA_EXPOSED",
@@ -9,7 +8,18 @@ _EXPLICIT_LABELS = {
     "BUTTOCKS_EXPOSED",
     "ANUS_EXPOSED",
 }
-_CONFIDENCE_THRESHOLD = 0.6
+_EXPLICIT_THRESHOLD = 0.5
+
+# Yopiq, lekin intim hudud (dumba/ko'krak/jinsiy a'zo) ta'kidlangan, provokatsion
+# rasmlar — noto'g'ri bloklashni kamaytirish uchun yuqoriroq ishonch talab qilinadi.
+# Oyoq/qorin/qo'ltiq kabi butunlay beg'ubor toifalar bu ro'yxatga kiritilmagan.
+_SUGGESTIVE_LABELS = {
+    "FEMALE_GENITALIA_COVERED",
+    "BUTTOCKS_COVERED",
+    "FEMALE_BREAST_COVERED",
+    "ANUS_COVERED",
+}
+_SUGGESTIVE_THRESHOLD = 0.75
 
 
 class NSFWService:
@@ -52,7 +62,9 @@ class NSFWService:
         for item in results or []:
             label = item.get("class") or item.get("label")
             score = item.get("score", 0)
-            if label in _EXPLICIT_LABELS and score >= _CONFIDENCE_THRESHOLD:
+            if label in _EXPLICIT_LABELS and score >= _EXPLICIT_THRESHOLD:
+                return True
+            if label in _SUGGESTIVE_LABELS and score >= _SUGGESTIVE_THRESHOLD:
                 return True
         return False
 
