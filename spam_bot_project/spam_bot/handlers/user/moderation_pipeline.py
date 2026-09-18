@@ -38,7 +38,7 @@ async def on_new_members(message: Message, bot: Bot, session: AsyncSession) -> N
     for member in message.new_chat_members or []:
         if member.is_bot:
             continue
-        reason = await scan_user_profile(bot, member.id)
+        reason = await scan_user_profile(bot, message.chat.id, member.id)
         if reason is None:
             continue
         await ban_user(bot, message.chat.id, member.id)

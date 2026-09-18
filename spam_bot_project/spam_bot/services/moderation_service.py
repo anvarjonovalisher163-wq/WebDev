@@ -17,7 +17,7 @@ from spam_bot.services.link_scanner import find_dangerous_link
 from spam_bot.services.moderation_actions import ban_user, delete_message_safe, mute_until, mute_user
 from spam_bot.services.notify import notify_operators
 from spam_bot.services.pattern_service import PatternService
-from spam_bot.services.profile_scan_service import scan_first_message
+from spam_bot.services.profile_scan_service import scan_user_profile
 from spam_bot.services.raid_detector import raid_detector
 from spam_bot.services.ratelimit import SlidingWindowRateLimiter
 from spam_bot.utils.copy import ACTION_LABELS, OPERATOR_NOTICE_TEMPLATE, REASON_LABELS, SPAM_DETECTED_TEMPLATE
@@ -44,7 +44,7 @@ class MessageModerationService:
         if group.access_until is not None and group.access_until < datetime.now(timezone.utc):
             return
 
-        profile_reason = await scan_first_message(bot, group.chat_id, message.from_user.id)
+        profile_reason = await scan_user_profile(bot, group.chat_id, message.from_user.id)
         if profile_reason:
             await self._act(session, bot, group.chat_id, message, reason=profile_reason, action="ban")
             return
