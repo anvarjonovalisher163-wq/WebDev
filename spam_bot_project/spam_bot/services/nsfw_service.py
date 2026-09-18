@@ -1,6 +1,10 @@
 from loguru import logger
 
-# To'liq ochiq (yalang'och) holatlar — o'rtacha ishonch darajasida ham bloklanadi.
+# To'liq ochiq (yalang'och) holatlar — yuqori ishonch darajasida bloklanadi.
+# Juda past chegara oddiy, beg'ubor rasmlarni ham xato bloklashiga olib
+# keladi (soya, teri rangi, kiyim tekstsurasi kabi narsalarni "aniqlash"
+# xatolari NudeNet'da tez-tez uchraydi), shuning uchun bu yerda ishonchli
+# darajada saqlanadi.
 _EXPLICIT_LABELS = {
     "FEMALE_GENITALIA_EXPOSED",
     "MALE_GENITALIA_EXPOSED",
@@ -8,20 +12,18 @@ _EXPLICIT_LABELS = {
     "BUTTOCKS_EXPOSED",
     "ANUS_EXPOSED",
 }
-_EXPLICIT_THRESHOLD = 0.35
+_EXPLICIT_THRESHOLD = 0.6
 
-# Yopiq, lekin intim hudud (dumba/ko'krak/jinsiy a'zo/qorin) ta'kidlangan,
-# provokatsion rasmlar. Oyoq/qo'ltiq kabi butunlay beg'ubor toifalar bu
-# ro'yxatga kiritilmagan, lekin qolganlari past chegara bilan bloklanadi —
-# demak ba'zan oddiy sport/plyaj rasmlari ham noto'g'ri bloklanishi mumkin.
+# Yopiq, lekin intim hudud (dumba/ko'krak/jinsiy a'zo) ta'kidlangan,
+# provokatsion rasmlar — juda yuqori ishonch talab qilinadi, chunki bu
+# toifalar tabiatan shovqinliroq (xato ijobiy natija ehtimoli yuqoriroq).
 _SUGGESTIVE_LABELS = {
     "FEMALE_GENITALIA_COVERED",
     "BUTTOCKS_COVERED",
     "FEMALE_BREAST_COVERED",
     "ANUS_COVERED",
-    "BELLY_EXPOSED",
 }
-_SUGGESTIVE_THRESHOLD = 0.35
+_SUGGESTIVE_THRESHOLD = 0.85
 
 
 class NSFWService:
