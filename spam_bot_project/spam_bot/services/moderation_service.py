@@ -20,7 +20,7 @@ from spam_bot.services.pattern_service import PatternService
 from spam_bot.services.profile_scan_service import scan_user_profile
 from spam_bot.services.raid_detector import raid_detector
 from spam_bot.services.ratelimit import SlidingWindowRateLimiter
-from spam_bot.utils.copy import ACTION_LABELS, OPERATOR_NOTICE_TEMPLATE, REASON_LABELS, SPAM_DETECTED_TEMPLATE
+from spam_bot.utils.copy import ACTION_LABELS, OPERATOR_NOTICE_TEMPLATE, REASON_LABELS
 
 pattern_service = PatternService()
 ai_moderation_service = AIModerationService(settings.gemini_model)
@@ -59,7 +59,7 @@ class MessageModerationService:
         group_patterns = await PatternRepo(session).list_for_group(group.id)
         matched_keyword = pattern_service.match(text, group_patterns)
         if matched_keyword:
-            await self._act(session, bot, group.chat_id, message, reason="keyword", action="mute")
+            await self._act(session, bot, group.chat_id, message, reason="keyword", action="ban")
             return
 
         if text and group.gemini_key_encrypted and ai_rate_limiter.allow(group.chat_id):
@@ -70,8 +70,7 @@ class MessageModerationService:
                     await UsageRepo(session).add(group.chat_id, result.input_tokens, result.output_tokens)
                     await session.commit()
                     if result.is_violation:
-                        action = "ban" if result.category == "adult" else "mute"
-                        await self._act(session, bot, group.chat_id, message, reason="ai", action=action)
+                        await self._act(session, bot, group.chat_id, message, reason="ai", action="ban")
                         return
 
         if text:
@@ -79,11 +78,11 @@ class MessageModerationService:
             if raid_users:
                 await delete_message_safe(bot, group.chat_id, message.message_id)
                 for uid in raid_users:
-                    await self._apply_action(session, bot, group.chat_id, uid, action="mute")
-                    await SpamLogRepo(session).add(group.chat_id, uid, text, reason="raid", action="mute")
+                    await self._apply_action(session, bot, group.chat_id, uid, action="ban")
+                    await SpamLogRepo(session).add(group.chat_id, uid, text, reason="raid", action="ban")
                 await session.commit()
                 await self._notify(
-                    bot, group.chat_id, raid_users[0], "Bir nechta akkaunt", reason="raid", action="mute",
+                    bot, group.chat_id, raid_users[0], "Bir nechta akkaunt", reason="raid", action="ban",
                     group_title=message.chat.title,
                 )
 
@@ -108,11 +107,9 @@ class MessageModerationService:
     async def _notify(self, bot: Bot, chat_id: int, user_id: int, name: str, reason: str, action: str, group_title: str | None = None) -> None:
         reason_label = REASON_LABELS.get(reason, reason)
         action_label = ACTION_LABELS.get(action, action)
-        text = SPAM_DETECTED_TEMPLATE.format(mention=name, reason=reason_label, action=action_label)
         keyboard = unban_keyboard(chat_id, user_id) if action == "ban" else unmute_keyboard(chat_id, user_id) if action == "mute" else None
-        await bot.send_message(chat_id, text, reply_markup=keyboard)
 
         operator_text = OPERATOR_NOTICE_TEMPLATE.format(
             group=group_title or str(chat_id), mention=name, reason=reason_label, action=action_label
         )
-        await notify_operators(bot, operator_text)
+        await notify_operators(bot, operator_text, reply_markup=keyboard)

@@ -39,16 +39,18 @@ ishlaydi (o'z Docker, baza va konfiguratsiyasi bilan).
 
 Har bir xabar quyidagi zanjirdan o'tadi, birinchi mos kelgan qoida ishga tushadi:
 
-1. Profil skaneri (a'zo bo'lganda va birinchi xabarda, bir marta)
+1. Profil skaneri (a'zo bo'lganda va har xabarda; rasm o'zgarmagan bo'lsa qayta tahlil qilinmaydi)
 2. Zararli/behayo havola tekshiruvi
 3. Kalit so'z qatlami (bepul)
 4. AI qatlami (agar guruh Gemini kaliti bo'lsa)
 5. Ommaviy hujum detektori
 
-Aniqlangan xabar o'chiriladi; jiddiy holatlarda (zararli havola, aniq NSFW,
-AI "adult" tasnifi) foydalanuvchi bloklanadi, boshqa hollarda 24 soatga
-ovozi o'chiriladi va admin ogohlantirish tugmalari orqali qarorni bekor
-qilishi mumkin.
+Aniqlangan xabar o'chiriladi va yuboruvchi **guruhdan bloklanadi** (avtomatik
+moderatsiya endi vaqtinchalik ovozsizlantirmaydi — darhol bloklaydi). Guruhga
+hech qanday ogohlantirish yozilmaydi; operator (`ADMIN_TELEGRAM_IDS`) buni
+shaxsiy xabarda "Blokdan chiqarish" tugmasi bilan oladi va xohlasa bir bosishda
+bekor qilishi mumkin. `/ban`/`/mute` orqali qo'lda moderatsiya qilish esa
+avvalgidek guruh ichida ishlaydi.
 
 ## Texnologiyalar
 

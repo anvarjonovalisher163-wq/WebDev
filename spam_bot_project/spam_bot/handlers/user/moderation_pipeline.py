@@ -4,6 +4,7 @@ from aiogram import Bot, F, Router
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from spam_bot.keyboards.moderation import unban_keyboard
 from spam_bot.repositories.group_repo import GroupRepo
 from spam_bot.repositories.spam_log_repo import SpamLogRepo
 from spam_bot.services.crypto_service import CryptoService
@@ -11,7 +12,7 @@ from spam_bot.services.moderation_actions import ban_user
 from spam_bot.services.moderation_service import MessageModerationService
 from spam_bot.services.notify import notify_operators
 from spam_bot.services.profile_scan_service import scan_user_profile
-from spam_bot.utils.copy import ACTION_LABELS, OPERATOR_NOTICE_TEMPLATE, REASON_LABELS, SPAM_DETECTED_TEMPLATE
+from spam_bot.utils.copy import ACTION_LABELS, OPERATOR_NOTICE_TEMPLATE, REASON_LABELS
 
 router = Router(name="moderation_pipeline")
 
@@ -44,20 +45,13 @@ async def on_new_members(message: Message, bot: Bot, session: AsyncSession) -> N
         await ban_user(bot, message.chat.id, member.id)
         await SpamLogRepo(session).add(message.chat.id, member.id, None, reason=reason, action="ban")
         await session.commit()
-        reason_label = REASON_LABELS.get(reason, reason)
-        text = SPAM_DETECTED_TEMPLATE.format(
-            mention=member.mention_html(),
-            reason=reason_label,
-            action=ACTION_LABELS["ban"],
-        )
-        await bot.send_message(message.chat.id, text)
         operator_text = OPERATOR_NOTICE_TEMPLATE.format(
             group=message.chat.title or str(message.chat.id),
             mention=member.mention_html(),
-            reason=reason_label,
+            reason=REASON_LABELS.get(reason, reason),
             action=ACTION_LABELS["ban"],
         )
-        await notify_operators(bot, operator_text)
+        await notify_operators(bot, operator_text, reply_markup=unban_keyboard(message.chat.id, member.id))
 
 
 @router.message(F.chat.type.in_({"group", "supergroup"}), F.text | F.caption)

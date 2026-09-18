@@ -3,6 +3,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from spam_bot.config import settings
 from spam_bot.repositories.mute_repo import MuteRepo
 from spam_bot.services.moderation_actions import unban_user, unmute_user
 from spam_bot.utils.copy import UNBAN_DONE, UNMUTE_DONE
@@ -13,6 +14,11 @@ _ADMIN_STATUSES = {"administrator", "creator"}
 
 
 async def _is_admin(bot: Bot, chat_id: int, user_id: int) -> bool:
+    if user_id in settings.admin_id_list:
+        # Botni joylashtirgan operator, guruh a'zosi bo'lmasa ham, har doim
+        # bloklash qarorini bekor qila oladi (bildirishnoma endi shaxsiy
+        # xabarlarda yuborilgani uchun).
+        return True
     try:
         member = await bot.get_chat_member(chat_id, user_id)
     except TelegramBadRequest:

@@ -65,13 +65,6 @@ UNMUTE_BUTTON = "🔊 Ovozini yoqish"
 UNBAN_DONE = "✅ Blokdan chiqarildi."
 UNMUTE_DONE = "🔊 Ovozi yoqildi."
 
-SPAM_DETECTED_TEMPLATE = (
-    "🛡️ Spam aniqlandi va o'chirildi.\n"
-    "Foydalanuvchi: {mention}\n"
-    "Sabab: {reason}\n"
-    "Chora: {action}"
-)
-
 OPERATOR_NOTICE_TEMPLATE = (
     "🛡️ <b>{group}</b> guruhida chora ko'rildi\n"
     "Foydalanuvchi: {mention}\n"
