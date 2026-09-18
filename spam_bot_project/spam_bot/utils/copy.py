@@ -1,3 +1,11 @@
+START_TEXT = (
+    "👋 Salom! Men — guruhlarni spam, ochiq-sochiq kontent va zararli "
+    "havolalardan avtomatik himoya qiluvchi botman.\n\n"
+    "Meni guruhingizga admin qilib qo'shing va u yerda /enable buyrug'ini "
+    "bering — himoya darhol ishga tushadi.\n\n"
+    "Barcha buyruqlar ro'yxati uchun /help ni bosing."
+)
+
 HELP_TEXT = (
     "🛡️ <b>Spam Himoya Boti</b>\n\n"
     "Ushbu bot guruhingizni spam, ochiq-sochiq kontent va zararli havolalardan "

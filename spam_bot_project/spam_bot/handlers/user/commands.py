@@ -22,9 +22,15 @@ from spam_bot.utils.copy import (
     SETKEY_DM_ONLY,
     SETKEY_LINK_SENT_TO_DM,
     SETKEY_PROMPT,
+    START_TEXT,
 )
 
 router = Router(name="commands")
+
+
+@router.message(Command("start"))
+async def cmd_start(message: Message) -> None:
+    await message.answer(START_TEXT)
 
 
 @router.message(Command("help"))
