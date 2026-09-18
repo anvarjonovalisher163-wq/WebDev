@@ -8,18 +8,20 @@ _EXPLICIT_LABELS = {
     "BUTTOCKS_EXPOSED",
     "ANUS_EXPOSED",
 }
-_EXPLICIT_THRESHOLD = 0.5
+_EXPLICIT_THRESHOLD = 0.35
 
-# Yopiq, lekin intim hudud (dumba/ko'krak/jinsiy a'zo) ta'kidlangan, provokatsion
-# rasmlar — noto'g'ri bloklashni kamaytirish uchun yuqoriroq ishonch talab qilinadi.
-# Oyoq/qorin/qo'ltiq kabi butunlay beg'ubor toifalar bu ro'yxatga kiritilmagan.
+# Yopiq, lekin intim hudud (dumba/ko'krak/jinsiy a'zo/qorin) ta'kidlangan,
+# provokatsion rasmlar. Oyoq/qo'ltiq kabi butunlay beg'ubor toifalar bu
+# ro'yxatga kiritilmagan, lekin qolganlari past chegara bilan bloklanadi —
+# demak ba'zan oddiy sport/plyaj rasmlari ham noto'g'ri bloklanishi mumkin.
 _SUGGESTIVE_LABELS = {
     "FEMALE_GENITALIA_COVERED",
     "BUTTOCKS_COVERED",
     "FEMALE_BREAST_COVERED",
     "ANUS_COVERED",
+    "BELLY_EXPOSED",
 }
-_SUGGESTIVE_THRESHOLD = 0.75
+_SUGGESTIVE_THRESHOLD = 0.35
 
 
 class NSFWService:
@@ -59,12 +61,15 @@ class NSFWService:
         except Exception as exc:  # noqa: BLE001
             logger.warning(f"NSFW tekshiruvida xato: {exc}")
             return False
+        logger.info(f"NSFW tekshiruvi natijalari: {results}")
         for item in results or []:
             label = item.get("class") or item.get("label")
             score = item.get("score", 0)
             if label in _EXPLICIT_LABELS and score >= _EXPLICIT_THRESHOLD:
+                logger.info(f"NSFW aniqlandi: {label} ({score:.2f})")
                 return True
             if label in _SUGGESTIVE_LABELS and score >= _SUGGESTIVE_THRESHOLD:
+                logger.info(f"NSFW aniqlandi: {label} ({score:.2f})")
                 return True
         return False
 
