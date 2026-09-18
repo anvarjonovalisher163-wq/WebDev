@@ -24,3 +24,13 @@ bit\.ly\/\w+.{0,15}(yutuq|bonus|sovg'a)
 # Guruh reklama bombardimoni
 \bqo'sh(iling|ing)\b.{0,10}https?:\/\/t\.me\/
 \bo'sish\s+xizmat\b.{0,15}(obunachi|a'zo)
+
+# Soxta davlat to'lovi / "shoshilinch xabar" fishing (masalan, gov.uz'ni
+# taqlid qiluvchi soxta ijtimoiy yordam/to'lov e'lonlari)
+\bshoshilinch\s+xabar\b
+\bhar\s+bir\s+fuqaroga\b.{0,40}\bso'm(ga)?\b
+\bto'lovni\s+majburiy\s+qiladigan\b.{0,20}\bqonun\b
+\byordam\s+olish\s+imkoniyat\w*(ingizni|ini)\s+tekshir\w*\b
+\bijtimoiy\s+yordam\b.{0,20}\bdoirasida\b.{0,20}\bso'mgacha\b
+\bviplata\d*\b
+\bajratiladigan\s+mablag'\s+miqdori\b
