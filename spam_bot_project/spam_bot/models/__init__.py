@@ -4,6 +4,7 @@ from spam_bot.models.pattern import SpamPattern
 from spam_bot.models.spam_log import SpamLog
 from spam_bot.models.usage_log import UsageLog
 from spam_bot.models.mute_record import MuteRecord
+from spam_bot.models.payment_log import PaymentLog
 
 __all__ = [
     "Base",
@@ -12,4 +13,5 @@ __all__ = [
     "SpamLog",
     "UsageLog",
     "MuteRecord",
+    "PaymentLog",
 ]

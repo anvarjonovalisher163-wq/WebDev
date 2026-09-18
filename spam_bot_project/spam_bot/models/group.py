@@ -1,4 +1,6 @@
-from sqlalchemy import BigInteger, Boolean, String, Text
+from datetime import datetime
+
+from sqlalchemy import BigInteger, Boolean, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from spam_bot.models.base import Base, TimestampMixin
@@ -16,3 +18,8 @@ class Group(Base, TimestampMixin):
     # Fernet bilan shifrlangan Gemini API kaliti; kalit bo'lmasa faqat
     # kalit so'z qatlami ishlaydi.
     gemini_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Bepul sinov muddati yoki to'langan obuna qachon tugashi. None bo'lsa
+    # (masalan bu funksiya qo'shilishidan oldin yaratilgan guruh) cheklovsiz
+    # hisoblanadi.
+    access_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from spam_bot.filters.is_operator import IsOperator
 from spam_bot.repositories.group_repo import GroupRepo
+from spam_bot.repositories.payment_log_repo import PaymentLogRepo
 from spam_bot.repositories.spam_log_repo import SpamLogRepo
 
 router = Router(name="admin_stats")
@@ -34,4 +35,19 @@ async def cmd_stats(message: Message, session: AsyncSession) -> None:
             title = group.title or str(group.chat_id)
             group_day = await spam_repo.count_for_chat(group.chat_id, now - timedelta(days=1))
             lines.append(f"• {title} — {group_day} (24s)")
+    await message.answer("\n".join(lines))
+
+
+@router.message(Command("daromad"), F.chat.type == "private", IsOperator())
+async def cmd_daromad(message: Message, session: AsyncSession) -> None:
+    payment_repo = PaymentLogRepo(session)
+    now = datetime.now(timezone.utc)
+    week_total = await payment_repo.total_stars_since(now - timedelta(days=7))
+    month_total = await payment_repo.total_stars_since(now - timedelta(days=30))
+    lines = [
+        "💰 <b>Daromad (Telegram Stars)</b>",
+        f"So'nggi 7 kun: {week_total} ⭐",
+        f"So'nggi 30 kun: {month_total} ⭐",
+        "\nStars'ni pulga aylantirish uchun: https://fragment.com",
+    ]
     await message.answer("\n".join(lines))

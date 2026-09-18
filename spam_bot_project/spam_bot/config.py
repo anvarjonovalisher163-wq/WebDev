@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # maksimal guruhlar soni (suiiste'moldan himoya).
     max_groups_per_owner: int = 20
 
+    # Yangi guruh uchun bepul sinov muddati (kun).
+    trial_days: int = 3
+    # Bir marta to'lov bilan uzaytiriladigan obuna davri (kun).
+    subscription_period_days: int = 30
+    # Obuna narxi, Telegram Stars'da (valyuta "XTR", tashqi to'lov tizimi shart emas).
+    subscription_price_stars: int = 100
+
     # Ertalabki hisobot yuboriladigan mahalliy soat (Asia/Tashkent).
     report_hour: int = 9
 

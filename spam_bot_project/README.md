@@ -25,8 +25,15 @@ ishlaydi (o'z Docker, baza va konfiguratsiyasi bilan).
   jazolaydi.
 - **Admin asboblari** — `/ban`, `/mute` (reply orqali), ogohlantirish
   xabaridagi Blokdan chiqarish/Ovozini yoqish tugmalari.
+- **Operatorga shaxsiy xabarnoma** — botni joylashtirgan operator har safar
+  kimdir bloklanganda/xabar o'chirilganda shaxsiy xabarlarda ham xabardor
+  qilinadi (`ADMIN_TELEGRAM_IDS`).
+- **Pullik obuna (Telegram Stars)** — yangi guruhga bepul sinov muddati
+  beriladi, tugagach `/obuna` orqali Telegram Stars bilan to'lov qilinadi;
+  to'lov Telegram tomonidan avtomatik tasdiqlanadi, tashqi to'lov tizimi
+  yoki biznes ro'yxatidan o'tish shart emas.
 - **Hisobot** — `/tokens` (Gemini xarajati), `/stats` (operator uchun,
-  shaxsiy xabarda), operatorga kunlik hisobot.
+  shaxsiy xabarda), `/daromad` (Stars daromadi), operatorga kunlik hisobot.
 
 ## Qanday ishlaydi
 
@@ -103,11 +110,27 @@ o'qiy olmaydi.
 | Buyruq | Kim uchun | Vazifasi |
 |---|---|---|
 | `/enable` · `/disable` | Guruh adminlari | Himoyani yoqish/o'chirish |
+| `/obuna` | Guruh adminlari | Telegram Stars orqali obunani to'lash/uzaytirish |
 | `/setkey` | Guruh adminlari | Gemini kalitini saqlash (shaxsiy, bir martalik havola) |
 | `/ban` · `/mute` | Guruh adminlari | Javob berilgan foydalanuvchini moderatsiya qilish |
 | `/tokens` | Guruh adminlari | Gemini tokenlaridan foydalanish + xarajat |
 | `/stats` | Operator (shaxsiy xabar) | Guruhlar va spam statistikasi |
+| `/daromad` | Operator (shaxsiy xabar) | Telegram Stars daromadi hisoboti |
 | `/help` · `/privacy` | Hamma | Qo'llanma / maxfiylik siyosati |
+
+## Obuna tizimi (Telegram Stars)
+
+Yangi guruh `/enable` qilinganda `TRIAL_DAYS` (standart 3) kun bepul ishlaydi.
+Muddat tugagach, himoya avtomatik to'xtaydi va guruh admini `/obuna` buyrug'i
+bilan Telegram Stars orqali to'lov qiladi (`SUBSCRIPTION_PRICE_STARS` ⭐,
+`SUBSCRIPTION_PERIOD_DAYS` kunga). To'lov Telegram'ning o'zi tomonidan
+tasdiqlanadi — chek yuborish yoki qo'lda tekshirish shart emas.
+
+**Muhim:** to'lov "Stars" ko'rinishida keladi, to'g'ridan-to'g'ri pul emas.
+Ularni haqiqiy pulga aylantirish uchun operator [Fragment](https://fragment.com)
+orqali Stars'ni TON kriptovalyutasiga almashtirishi, so'ng uni birjada
+so'mga/dollarga aylantirishi kerak. Buning uchun ham biznes ro'yxatidan
+o'tish shart emas, lekin jarayon bir necha bosqichli.
 
 ## Litsenziya haqida eslatma
 

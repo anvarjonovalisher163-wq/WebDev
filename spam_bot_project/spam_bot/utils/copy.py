@@ -5,10 +5,12 @@ HELP_TEXT = (
     "<b>Buyruqlar:</b>\n"
     "/enable — guruh uchun himoyani yoqish (faqat guruh adminlari)\n"
     "/disable — himoyani o'chirish (faqat guruh adminlari)\n"
+    "/obuna — Telegram Stars orqali obunani to'lash/uzaytirish\n"
     "/setkey — sun'iy intellekt moderatsiyasi uchun shaxsiy Gemini kalitini saqlash\n"
     "/ban, /mute — javob berilgan foydalanuvchini moderatsiya qilish (reply orqali)\n"
     "/tokens — Gemini tokenlaridan foydalanish va xarajat hisoboti\n"
     "/stats — guruhlar va tutilgan spam statistikasi (operator uchun)\n"
+    "/daromad — Stars daromadi hisoboti (operator uchun)\n"
     "/privacy — maxfiylik siyosati"
 )
 
@@ -22,8 +24,23 @@ PRIVACY_TEXT = (
 )
 
 ENABLE_SUCCESS = "✅ Himoya yoqildi. Bot endi spam, NSFW va zararli havolalarni kuzatadi."
+ENABLE_TRIAL_STARTED = (
+    "✅ Himoya yoqildi! Sizga {days} kunlik bepul sinov muddati berildi.\n"
+    "Muddat tugagach, davom etish uchun /obuna buyrug'i orqali Telegram Stars bilan to'lov qilishingiz kerak bo'ladi."
+)
+ENABLE_EXPIRED_NOTICE = (
+    "⏰ Bepul sinov muddati yoki obunangiz tugagan, shuning uchun himoya vaqtincha to'xtatilgan.\n"
+    "Davom ettirish uchun guruhda /obuna buyrug'ini bering."
+)
 DISABLE_SUCCESS = "🚫 Himoya o'chirildi."
 GROUP_LIMIT_REACHED = "⚠️ Siz uchun ruxsat etilgan guruhlar soni chegarasiga yetdingiz."
+
+SUBSCRIPTION_INVOICE_TITLE = "Spam Himoya Boti — obuna"
+SUBSCRIPTION_INVOICE_DESCRIPTION = "\"{group}\" guruhi uchun {days} kunlik himoya obunasi."
+SUBSCRIPTION_LABEL = "Obuna ({days} kun)"
+SUBSCRIPTION_GROUP_ONLY = "Bu buyruq faqat guruh ichida ishlaydi. Iltimos, guruhda /obuna deb yozing."
+SUBSCRIPTION_PAID_GROUP = "✅ To'lov qabul qilindi! Himoya {until} sanasigacha faol."
+SUBSCRIPTION_PAID_DM = "✅ Rahmat! \"{group}\" guruhi uchun to'lovingiz qabul qilindi, himoya {until} sanasigacha faol."
 
 SETKEY_PROMPT = "🔑 Gemini API kalitingizni shaxsiy xabarlar orqali saqlash uchun quyidagi havolaga o'ting (15 daqiqa amal qiladi):\n{link}"
 SETKEY_DM_ONLY = "Bu buyruq faqat guruh ichida ishlaydi. Iltimos, guruhda /setkey deb yozing."
@@ -42,6 +59,13 @@ UNMUTE_DONE = "🔊 Ovozi yoqildi."
 
 SPAM_DETECTED_TEMPLATE = (
     "🛡️ Spam aniqlandi va o'chirildi.\n"
+    "Foydalanuvchi: {mention}\n"
+    "Sabab: {reason}\n"
+    "Chora: {action}"
+)
+
+OPERATOR_NOTICE_TEMPLATE = (
+    "🛡️ <b>{group}</b> guruhida chora ko'rildi\n"
     "Foydalanuvchi: {mention}\n"
     "Sabab: {reason}\n"
     "Chora: {action}"

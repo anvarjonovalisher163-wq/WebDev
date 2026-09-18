@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,14 +14,22 @@ class GroupRepo:
         result = await self.session.execute(select(Group).where(Group.chat_id == chat_id))
         return result.scalar_one_or_none()
 
-    async def get_or_create(self, chat_id: int, title: str | None, owner_id: int) -> Group:
+    async def get_or_create(self, chat_id: int, title: str | None, owner_id: int, trial_days: int = 0) -> Group:
         group = await self.get_by_chat_id(chat_id)
         if group is not None:
             return group
-        group = Group(chat_id=chat_id, title=title, owner_id=owner_id, enabled=False)
+        access_until = datetime.now(timezone.utc) + timedelta(days=trial_days) if trial_days else None
+        group = Group(chat_id=chat_id, title=title, owner_id=owner_id, enabled=False, access_until=access_until)
         self.session.add(group)
         await self.session.flush()
         return group
+
+    async def extend_subscription(self, group: Group, days: int) -> datetime:
+        now = datetime.now(timezone.utc)
+        base = group.access_until if group.access_until and group.access_until > now else now
+        group.access_until = base + timedelta(days=days)
+        await self.session.flush()
+        return group.access_until
 
     async def count_enabled_for_owner(self, owner_id: int) -> int:
         result = await self.session.execute(

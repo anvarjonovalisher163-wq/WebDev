@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from aiogram import Bot
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,11 +15,12 @@ from spam_bot.services.ai_moderation_service import AIModerationService
 from spam_bot.services.crypto_service import CryptoService
 from spam_bot.services.link_scanner import find_dangerous_link
 from spam_bot.services.moderation_actions import ban_user, delete_message_safe, mute_until, mute_user
+from spam_bot.services.notify import notify_operators
 from spam_bot.services.pattern_service import PatternService
 from spam_bot.services.profile_scan_service import scan_first_message
 from spam_bot.services.raid_detector import raid_detector
 from spam_bot.services.ratelimit import SlidingWindowRateLimiter
-from spam_bot.utils.copy import ACTION_LABELS, REASON_LABELS, SPAM_DETECTED_TEMPLATE
+from spam_bot.utils.copy import ACTION_LABELS, OPERATOR_NOTICE_TEMPLATE, REASON_LABELS, SPAM_DETECTED_TEMPLATE
 
 pattern_service = PatternService()
 ai_moderation_service = AIModerationService(settings.gemini_model)
@@ -37,6 +40,8 @@ class MessageModerationService:
         group_repo = GroupRepo(session)
         group = await group_repo.get_by_chat_id(message.chat.id)
         if group is None or not group.enabled:
+            return
+        if group.access_until is not None and group.access_until < datetime.now(timezone.utc):
             return
 
         profile_reason = await scan_first_message(bot, group.chat_id, message.from_user.id)
@@ -78,7 +83,8 @@ class MessageModerationService:
                     await SpamLogRepo(session).add(group.chat_id, uid, text, reason="raid", action="mute")
                 await session.commit()
                 await self._notify(
-                    bot, group.chat_id, raid_users[0], "Bir nechta akkaunt", reason="raid", action="mute"
+                    bot, group.chat_id, raid_users[0], "Bir nechta akkaunt", reason="raid", action="mute",
+                    group_title=message.chat.title,
                 )
 
     async def _act(self, session: AsyncSession, bot: Bot, chat_id: int, message: Message, reason: str, action: str) -> None:
@@ -89,7 +95,7 @@ class MessageModerationService:
         await SpamLogRepo(session).add(chat_id, user_id, text, reason=reason, action=action)
         await session.commit()
         name = message.from_user.mention_html() if message.from_user else str(user_id)
-        await self._notify(bot, chat_id, user_id, name, reason=reason, action=action)
+        await self._notify(bot, chat_id, user_id, name, reason=reason, action=action, group_title=message.chat.title)
 
     async def _apply_action(self, session: AsyncSession, bot: Bot, chat_id: int, user_id: int, action: str) -> None:
         if action == "ban":
@@ -99,11 +105,14 @@ class MessageModerationService:
             await mute_user(bot, chat_id, user_id, until)
             await MuteRepo(session).create(chat_id, user_id, reason=action, muted_until=until)
 
-    async def _notify(self, bot: Bot, chat_id: int, user_id: int, name: str, reason: str, action: str) -> None:
-        text = SPAM_DETECTED_TEMPLATE.format(
-            mention=name,
-            reason=REASON_LABELS.get(reason, reason),
-            action=ACTION_LABELS.get(action, action),
-        )
+    async def _notify(self, bot: Bot, chat_id: int, user_id: int, name: str, reason: str, action: str, group_title: str | None = None) -> None:
+        reason_label = REASON_LABELS.get(reason, reason)
+        action_label = ACTION_LABELS.get(action, action)
+        text = SPAM_DETECTED_TEMPLATE.format(mention=name, reason=reason_label, action=action_label)
         keyboard = unban_keyboard(chat_id, user_id) if action == "ban" else unmute_keyboard(chat_id, user_id) if action == "mute" else None
         await bot.send_message(chat_id, text, reply_markup=keyboard)
+
+        operator_text = OPERATOR_NOTICE_TEMPLATE.format(
+            group=group_title or str(chat_id), mention=name, reason=reason_label, action=action_label
+        )
+        await notify_operators(bot, operator_text)
