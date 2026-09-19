@@ -1,6 +1,7 @@
 from aiogram import Bot, Router
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
-from aiogram.types import CallbackQuery
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.admin import (
@@ -8,13 +9,14 @@ from bot.keyboards.admin import (
     CB_ADMIN_SEASON_END_PROMPT,
     CB_ADMIN_SEASONS,
     admin_main_menu_keyboard,
+    cancel_keyboard,
     season_end_confirm_keyboard,
     seasons_menu_keyboard,
 )
 from bot.repositories.season_repo import SeasonRepo
 from bot.services.audit import log_admin_action
-from bot.services.broadcast_service import BroadcastService
 from bot.services.season_service import CELEBRATION_EMOJI, SeasonService
+from bot.states.admin_states import SeasonStates
 
 router = Router(name="admin_seasons")
 
@@ -35,8 +37,8 @@ async def on_seasons_menu(callback: CallbackQuery, session: AsyncSession) -> Non
 @router.callback_query(lambda c: c.data == CB_ADMIN_SEASON_END_PROMPT)
 async def on_season_end_prompt(callback: CallbackQuery) -> None:
     await callback.message.edit_text(
-        "Joriy mavsum yakunlanadi, g'olib avtomatik aniqlanadi va barcha "
-        "foydalanuvchilarga e'lon qilinadi, so'ng yangi mavsum 0 dan boshlanadi.\n\n"
+        "Joriy mavsum yakunlanadi, g'olib avtomatik aniqlanadi (unga shaxsan "
+        "xabar beriladi) va barchaning hisoblagichi 0 dan boshlanadi.\n\n"
         "Bu amalni ortga qaytarib bo'lmaydi. Davom etamizmi?",
         reply_markup=season_end_confirm_keyboard(),
     )
@@ -44,19 +46,36 @@ async def on_season_end_prompt(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(lambda c: c.data == CB_ADMIN_SEASON_END_CONFIRM)
-async def on_season_end_confirm(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
-    await callback.answer("Yakunlanmoqda...")
-    await callback.message.edit_reply_markup(reply_markup=None)
+async def on_season_end_confirm(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(SeasonStates.waiting_new_name)
+    await callback.message.edit_text(
+        "Yangi mavsum uchun nom kiriting (masalan: \"1-mavsum\", \"2-mavsum\" yoki "
+        "istalgan boshqa nom):",
+        reply_markup=cancel_keyboard(),
+    )
+    await callback.answer()
+
+
+@router.message(SeasonStates.waiting_new_name)
+async def on_season_new_name_received(
+    message: Message, state: FSMContext, session: AsyncSession, bot: Bot
+) -> None:
+    new_name = (message.text or "").strip()
+    if not new_name:
+        await message.answer("Nom bo'sh bo'lishi mumkin emas. Qayta kiriting:", reply_markup=cancel_keyboard())
+        return
+
+    await state.clear()
 
     season_service = SeasonService(session)
-    result = await season_service.end_current_and_start_new()
+    result = await season_service.end_current_and_start_new(new_name)
 
     await log_admin_action(
         session,
-        callback.from_user.id,
+        message.from_user.id,
         "end_season",
-        f"season={result.closed_season.name} winner_id={result.winner.id if result.winner else None} "
-        f"winner_count={result.winner_count}",
+        f"season={result.closed_season.name} new_season={result.new_season.name} "
+        f"winner_id={result.winner.id if result.winner else None} winner_count={result.winner_count}",
     )
     await session.commit()
 
@@ -75,23 +94,13 @@ async def on_season_end_confirm(callback: CallbackQuery, session: AsyncSession, 
             pass
 
     winner_line = (
-        f"🏆 Bu mavsumning \"Eng Faol Targibotchi\"si — {result.winner.first_name}, "
-        f"{result.winner_count} ta tasdiqlangan taklif bilan!"
+        f"G'olib: {result.winner.first_name} ({result.winner_count} ta tasdiqlangan taklif) - "
+        "unga shaxsan tabrik xabari yuborildi."
         if result.winner is not None
-        else "Bu mavsumda hech kim shartlarni bajarmadi."
+        else "G'olib: (bu mavsumda hech kim shartlarni bajarmadi)"
     )
-    announcement = (
-        f"📢 {result.closed_season.name} yakunlandi!\n\n"
-        f"{winner_line}\n\n"
-        f"🆕 {result.new_season.name} boshlandi — barchaning hisoblagichi 0 dan boshlanadi, omad tilaymiz!"
-    )
-    report = await BroadcastService(session, bot).send_text_to_all(announcement)
-
-    await callback.message.answer(
-        "Mavsum yakunlandi va e'lon yuborildi.\n\n"
-        f"G'olib: {result.winner.first_name if result.winner else '(aniqlanmadi)'}\n"
-        f"Yangi mavsum: {result.new_season.name}\n\n"
-        f"E'lon yetkazildi: {report.success}/{report.total} "
-        f"(bloklaganlar: {report.blocked}, xatolik: {report.failed})",
+    await message.answer(
+        f"✅ {result.closed_season.name} yakunlandi, {result.new_season.name} boshlandi.\n\n"
+        f"{winner_line}",
         reply_markup=admin_main_menu_keyboard(),
     )

@@ -68,7 +68,7 @@ class SeasonService:
 
         return "\n".join(lines)
 
-    async def end_current_and_start_new(self) -> SeasonEndResult:
+    async def end_current_and_start_new(self, new_season_name: str) -> SeasonEndResult:
         active = await self.season_repo.get_active()
         top = await self.referral_repo.season_leaderboard(active.id, limit=1)
 
@@ -79,7 +79,7 @@ class SeasonService:
             winner = await self.user_repo.get_by_id(winner_id)
 
         new_season = await self.season_repo.close_and_start_next(
-            active, winner.id if winner else None, winner_count if winner else None
+            active, winner.id if winner else None, winner_count if winner else None, new_season_name
         )
         return SeasonEndResult(
             closed_season=active, new_season=new_season, winner=winner, winner_count=winner_count

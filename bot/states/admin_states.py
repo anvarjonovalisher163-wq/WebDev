@@ -40,3 +40,7 @@ class SearchStates(StatesGroup):
 
 class AdminManageStates(StatesGroup):
     waiting_new_admin_id = State()
+
+
+class SeasonStates(StatesGroup):
+    waiting_new_name = State()

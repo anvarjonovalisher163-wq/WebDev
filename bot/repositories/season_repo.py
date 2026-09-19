@@ -30,14 +30,21 @@ class SeasonRepo:
         return list(result.scalars().all())
 
     async def close_and_start_next(
-        self, closing: Season, winner_user_id: Optional[int], winner_referral_count: Optional[int]
+        self,
+        closing: Season,
+        winner_user_id: Optional[int],
+        winner_referral_count: Optional[int],
+        new_season_name: str,
     ) -> Season:
+        """Joriy mavsumni yopadi va admin kiritgan nom bilan yangi mavsumni
+        boshlaydi. `number` faqat ichki tartiblash uchun avtomatik oshadi -
+        admin xohlagan nomni (masalan, yana "1-mavsum") erkin tanlashi mumkin."""
         closing.is_active = False
         closing.ended_at = datetime.now(timezone.utc)
         closing.winner_user_id = winner_user_id
         closing.winner_referral_count = winner_referral_count
 
-        next_season = Season(number=closing.number + 1, name=f"{closing.number + 1}-mavsum", is_active=True)
+        next_season = Season(number=closing.number + 1, name=new_season_name, is_active=True)
         self.session.add(next_season)
         await self.session.flush()
         return next_season
