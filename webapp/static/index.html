@@ -7,154 +7,338 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root {
-    --bg: var(--tg-theme-bg-color, #f2f2f7);
-    --text: var(--tg-theme-text-color, #111111);
+    --card: var(--tg-theme-bg-color, #ffffff);
+    --text: var(--tg-theme-text-color, #16171a);
     --hint: var(--tg-theme-hint-color, #8e8e93);
-    --card: var(--tg-theme-secondary-bg-color, #ffffff);
-    --accent: var(--tg-theme-button-color, #2481cc);
-    --accent-text: var(--tg-theme-button-text-color, #ffffff);
+    --surface: var(--tg-theme-secondary-bg-color, #f2f2f7);
+    --accent: var(--tg-theme-button-color, #ff7a30);
   }
   * { box-sizing: border-box; }
-  body {
+  html, body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
+    background: var(--surface);
     color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
-  .header {
-    padding: 20px 16px 12px;
+  body { padding-bottom: 84px; }
+
+  .hero {
+    background: linear-gradient(160deg, #ff5f4d 0%, #ff8a2b 55%, #ffb238 100%);
+    color: #fff;
+    padding: 20px 16px 64px;
     text-align: center;
+    position: relative;
   }
-  .header h1 {
+  .hero h1 {
     margin: 0 0 4px;
     font-size: 22px;
+    font-weight: 800;
   }
-  .header p {
+  .hero p {
     margin: 0;
-    color: var(--hint);
+    opacity: 0.9;
     font-size: 14px;
   }
-  .list {
-    padding: 8px 12px 24px;
+
+  .podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 12px;
+    margin-top: -46px;
+  }
+  .podium-slot {
+    flex: 1;
+    max-width: 120px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    align-items: center;
+  }
+  .podium-avatar-wrap {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .avatar {
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  }
+  .podium-slot.p1 .avatar { width: 72px; height: 72px; font-size: 26px; }
+  .podium-slot.p2 .avatar, .podium-slot.p3 .avatar { width: 58px; height: 58px; font-size: 20px; }
+  .crown {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+  }
+  .podium-name {
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    color: #fff;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 6px;
+  }
+  .podium-block {
+    width: 100%;
+    border-radius: 14px 14px 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+    color: #4a2c00;
+  }
+  .podium-slot.p1 .podium-block { height: 88px; background: linear-gradient(180deg, #ffe27a, #ffc93c); }
+  .podium-slot.p2 .podium-block { height: 66px; background: linear-gradient(180deg, #f1f3f6, #d7dbe2); }
+  .podium-slot.p3 .podium-block { height: 52px; background: linear-gradient(180deg, #f3c98a, #e0a35f); }
+  .podium-rank {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  .podium-count {
+    font-weight: 800;
+    font-size: 13px;
+  }
+
+  .list {
+    background: var(--card);
+    border-radius: 18px;
+    margin: 16px 12px 0;
+    overflow: hidden;
   }
   .row {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: var(--card);
-    border-radius: 14px;
     padding: 12px 14px;
+    border-bottom: 1px solid rgba(128,128,128,0.12);
   }
-  .row.you {
-    outline: 2px solid var(--accent);
-  }
-  .rank {
-    min-width: 32px;
+  .row:last-child { border-bottom: none; }
+  .row .rank {
+    min-width: 26px;
     text-align: center;
     font-weight: 700;
-    font-size: 16px;
     color: var(--hint);
+    font-size: 14px;
   }
-  .row.top1 .rank { font-size: 22px; }
-  .row.top2 .rank { font-size: 20px; }
-  .row.top3 .rank { font-size: 20px; }
-  .name {
+  .row .avatar { width: 40px; height: 40px; font-size: 15px; border-width: 0; flex-shrink: 0; }
+  .row .name {
     flex: 1;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 14.5px;
+    font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .count {
+  .row .count {
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14px;
     color: var(--accent);
     white-space: nowrap;
   }
+  .row.you-row { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+  .load-more {
+    display: block;
+    width: calc(100% - 24px);
+    margin: 14px 12px 0;
+    padding: 12px;
+    border: none;
+    border-radius: 14px;
+    background: var(--card);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
   .empty, .loading {
     text-align: center;
     color: var(--hint);
     padding: 40px 16px;
   }
-  .you-banner {
-    margin: 4px 12px 0;
+
+  .you-bar {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
     background: var(--card);
-    border-radius: 14px;
-    padding: 12px 14px;
-    display: flex;
-    justify-content: space-between;
+    border-radius: 16px;
+    padding: 10px 14px;
+    display: none;
     align-items: center;
-    border: 1px dashed var(--accent);
+    gap: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+    border: 1.5px solid var(--accent);
+  }
+  .you-bar .rank {
+    min-width: 34px;
+    text-align: center;
+    font-weight: 800;
+    font-size: 14px;
+  }
+  .you-bar .name { flex: 1; font-weight: 700; font-size: 14px; }
+  .you-bar .badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    padding: 2px 8px;
+    border-radius: 8px;
+    margin-left: 6px;
   }
 </style>
 </head>
 <body>
-  <div class="header">
+  <div class="hero">
     <h1>🏆 Reyting</h1>
     <p id="season-label">Yuklanmoqda...</p>
   </div>
-  <div id="you-banner"></div>
+
+  <div id="podium" class="podium"></div>
   <div id="list" class="list"><div class="loading">Yuklanmoqda...</div></div>
+  <button id="load-more" class="load-more" style="display:none;">Yana ko'rsatish</button>
+
+  <div id="you-bar" class="you-bar"></div>
 
   <script>
     const tg = window.Telegram ? window.Telegram.WebApp : null;
-    if (tg) {
-      tg.ready();
-      tg.expand();
+    if (tg) { tg.ready(); tg.expand(); }
+
+    const PALETTE = ["#ff7a30", "#3aa0ff", "#37c980", "#a463ff", "#ff5f8f", "#ffb238", "#4dd0e1"];
+
+    function initials(name) {
+      return (name || "?").trim().charAt(0).toUpperCase();
+    }
+    function colorFor(name) {
+      let sum = 0;
+      for (const ch of (name || "?")) sum += ch.charCodeAt(0);
+      return PALETTE[sum % PALETTE.length];
+    }
+    function avatarHtml(name, extraClass) {
+      return `<div class="avatar ${extraClass || ''}" style="background:${colorFor(name)}">${initials(name)}</div>`;
     }
 
-    function medalOrRank(rank) {
-      if (rank === 1) return "🥇";
-      if (rank === 2) return "🥈";
-      if (rank === 3) return "🥉";
-      return rank + ".";
-    }
+    let offset = 0;
+    let limit = 50;
+    let renderedFirstPage = false;
 
-    async function loadLeaderboard() {
+    async function fetchPage(nextOffset) {
       const headers = {};
-      if (tg && tg.initData) {
-        headers["X-Telegram-Init-Data"] = tg.initData;
-      }
-      const res = await fetch("/api/leaderboard", { headers });
-      const data = await res.json();
+      if (tg && tg.initData) headers["X-Telegram-Init-Data"] = tg.initData;
+      const res = await fetch(`/api/leaderboard?offset=${nextOffset}&limit=${limit}`, { headers });
+      return res.json();
+    }
 
-      document.getElementById("season-label").textContent = data.season.name;
+    function renderPodium(entries) {
+      const podiumEl = document.getElementById("podium");
+      const top3 = entries.filter((e) => e.rank <= 3);
+      if (!top3.length) { podiumEl.style.display = "none"; return; }
 
+      const order = { 2: 1, 1: 2, 3: 3 }; // vizual tartib: 2-o'rin chapda, 1-o'rin markazda, 3-o'rin o'ngda
+      const bySlot = {};
+      top3.forEach((e) => { bySlot[e.rank] = e; });
+
+      let html = "";
+      [2, 1, 3].forEach((rank) => {
+        const e = bySlot[rank];
+        if (!e) { html += `<div class="podium-slot p${rank}"></div>`; return; }
+        html += `
+          <div class="podium-slot p${rank}">
+            <div class="podium-avatar-wrap">
+              ${rank === 1 ? '<div class="crown">👑</div>' : ''}
+              ${avatarHtml(e.name)}
+            </div>
+            <div class="podium-name">${e.name}${e.is_you ? " (siz)" : ""}</div>
+            <div class="podium-block">
+              <div class="podium-rank">${rank}</div>
+              <div class="podium-count">${e.count} ta</div>
+            </div>
+          </div>
+        `;
+      });
+      podiumEl.innerHTML = html;
+    }
+
+    function renderRows(entries, append) {
       const listEl = document.getElementById("list");
-      listEl.innerHTML = "";
-
-      if (!data.entries.length) {
+      if (!append) listEl.innerHTML = "";
+      const rest = entries.filter((e) => e.rank > 3);
+      if (!rest.length && !append && !entries.length) {
         listEl.innerHTML = '<div class="empty">Hali hech kim tasdiqlangan taklif qilmagan.<br>Birinchi bo\'ling!</div>';
         return;
       }
-
-      data.entries.forEach((entry) => {
+      rest.forEach((e) => {
         const row = document.createElement("div");
-        row.className = "row" + (entry.is_you ? " you" : "") + (entry.rank <= 3 ? " top" + entry.rank : "");
+        row.className = "row" + (e.is_you ? " you-row" : "");
         row.innerHTML = `
-          <div class="rank">${medalOrRank(entry.rank)}</div>
-          <div class="name">${entry.name}${entry.is_you ? " (siz)" : ""}</div>
-          <div class="count">${entry.count} ta</div>
+          <div class="rank">${e.rank}</div>
+          ${avatarHtml(e.name)}
+          <div class="name">${e.name}${e.is_you ? " (siz)" : ""}</div>
+          <div class="count">${e.count} ta</div>
         `;
         listEl.appendChild(row);
       });
+    }
 
-      const banner = document.getElementById("you-banner");
-      if (data.you) {
-        banner.innerHTML = `
-          <div class="you-banner">
-            <span>Sizning o'rningiz: <b>${data.you.rank}-o'rin</b></span>
-            <span class="count">${data.you.count} ta</span>
-          </div>
-        `;
+    function renderYouBar(you) {
+      const bar = document.getElementById("you-bar");
+      if (!you) { bar.style.display = "none"; return; }
+      bar.style.display = "flex";
+      bar.innerHTML = `
+        <div class="rank">${you.rank}</div>
+        ${avatarHtml(you.name)}
+        <div class="name">${you.name} <span class="badge">Siz</span></div>
+        <div class="count" style="color: var(--accent); font-weight:800;">${you.count} ta</div>
+      `;
+    }
+
+    async function loadMore() {
+      const data = await fetchPage(offset);
+      document.getElementById("season-label").textContent = `${data.season.name} · ${data.total} ishtirokchi`;
+
+      if (!renderedFirstPage) {
+        renderPodium(data.entries);
+        renderRows(data.entries, false);
+        renderedFirstPage = true;
+      } else {
+        renderRows(data.entries, true);
+      }
+
+      renderYouBar(data.you);
+
+      offset += data.entries.length;
+      const btn = document.getElementById("load-more");
+      if (offset < data.total && data.entries.length > 0) {
+        btn.style.display = "block";
+      } else {
+        btn.style.display = "none";
       }
     }
 
-    loadLeaderboard().catch(() => {
+    document.getElementById("load-more").addEventListener("click", () => {
+      loadMore().catch(() => {});
+    });
+
+    loadMore().catch(() => {
       document.getElementById("list").innerHTML = '<div class="empty">Ma\'lumotni yuklab bo\'lmadi. Keyinroq urinib ko\'ring.</div>';
     });
   </script>

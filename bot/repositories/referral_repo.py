@@ -64,11 +64,14 @@ class ReferralRepo:
     async def touch_checked(self, referral: Referral) -> None:
         referral.last_checked_at = datetime.now(timezone.utc)
 
-    async def season_leaderboard(self, season_id: int, limit: int = 10) -> list[tuple[int, int]]:
+    async def season_leaderboard(
+        self, season_id: int, limit: Optional[int] = 10, offset: int = 0
+    ) -> list[tuple[int, int]]:
         """Mavsum ichida eng ko'p tasdiqlangan referral qilganlar ro'yxati:
         [(referrer_id, tasdiqlangan_soni), ...], ko'p -> kam, teng bo'lsa
-        avvalroq shu songa yetgan referrer oldinda turadi."""
-        result = await self.session.execute(
+        avvalroq shu songa yetgan referrer oldinda turadi. `limit=None` -
+        hammasini qaytaradi."""
+        query = (
             select(
                 Referral.referrer_id,
                 func.count().label("cnt"),
@@ -77,9 +80,23 @@ class ReferralRepo:
             .where(Referral.season_id == season_id, Referral.status == ReferralStatus.APPROVED)
             .group_by(Referral.referrer_id)
             .order_by(func.count().desc(), func.min(Referral.approved_at).asc())
-            .limit(limit)
+            .offset(offset)
         )
+        if limit is not None:
+            query = query.limit(limit)
+        result = await self.session.execute(query)
         return [(row.referrer_id, row.cnt) for row in result.all()]
+
+    async def season_participant_count(self, season_id: int) -> int:
+        """Shu mavsumda kamida bitta tasdiqlangan referrali bor foydalanuvchilar soni."""
+        subquery = (
+            select(Referral.referrer_id)
+            .where(Referral.season_id == season_id, Referral.status == ReferralStatus.APPROVED)
+            .group_by(Referral.referrer_id)
+            .subquery()
+        )
+        result = await self.session.execute(select(func.count()).select_from(subquery))
+        return result.scalar_one()
 
     async def season_rank_of(self, season_id: int, referrer_id: int) -> Optional[tuple[int, int]]:
         """(o'rin, soni) - agar foydalanuvchida shu mavsumda tasdiqlangan referral bo'lmasa None."""

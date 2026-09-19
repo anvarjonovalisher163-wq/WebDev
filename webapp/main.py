@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qsl
 
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Header, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -63,14 +63,28 @@ async def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
+PAGE_SIZE = 50
+
+
 @app.get("/api/leaderboard")
-async def leaderboard(x_telegram_init_data: str = Header(default="")) -> dict:
+async def leaderboard(
+    x_telegram_init_data: str = Header(default=""),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=PAGE_SIZE, ge=1, le=PAGE_SIZE),
+) -> dict:
+    """Joriy mavsumdagi TO'LIQ reyting, sahifalab (offset/limit) qaytariladi -
+    shu mavsumda ishtirok etgan hamma ko'rinishi mumkin. `you` foydalanuvchining
+    haqiqiy o'rnini sahifadan qat'i nazar har doim qaytaradi (pastda "yopishib
+    turuvchi" qator sifatida ko'rsatish uchun)."""
     tg_user = _verify_init_data(x_telegram_init_data)
 
     async with async_session_factory() as session:
         active_season = await SeasonRepo(session).get_active()
         season_service = SeasonService(session)
-        rows = await season_service.get_leaderboard_rows(active_season, limit=20)
+        referral_repo = ReferralRepo(session)
+
+        total = await referral_repo.season_participant_count(active_season.id)
+        rows = await season_service.get_leaderboard_rows(active_season, limit=limit, offset=offset)
 
         entries = [
             {
@@ -85,14 +99,16 @@ async def leaderboard(x_telegram_init_data: str = Header(default="")) -> dict:
         you = None
         if tg_user:
             user = await UserRepo(session).get_by_tg_id(tg_user["id"])
-            already_in_top = user is not None and any(e["is_you"] for e in entries)
-            if user is not None and not already_in_top:
-                position = await ReferralRepo(session).season_rank_of(active_season.id, user.id)
+            if user is not None:
+                position = await referral_repo.season_rank_of(active_season.id, user.id)
                 if position:
                     you = {"rank": position[0], "count": position[1], "name": user.first_name}
 
         return {
             "season": {"number": active_season.number, "name": active_season.name},
+            "total": total,
+            "offset": offset,
+            "limit": limit,
             "entries": entries,
             "you": you,
         }

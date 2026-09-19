@@ -28,10 +28,12 @@ class SeasonService:
         self.referral_repo = ReferralRepo(session)
         self.user_repo = UserRepo(session)
 
-    async def get_leaderboard_rows(self, season: Season, limit: int = 10) -> list[dict]:
-        rows = await self.referral_repo.season_leaderboard(season.id, limit=limit)
+    async def get_leaderboard_rows(
+        self, season: Season, limit: Optional[int] = 10, offset: int = 0
+    ) -> list[dict]:
+        rows = await self.referral_repo.season_leaderboard(season.id, limit=limit, offset=offset)
         result = []
-        for rank, (referrer_id, count) in enumerate(rows, start=1):
+        for rank, (referrer_id, count) in enumerate(rows, start=offset + 1):
             user = await self.user_repo.get_by_id(referrer_id)
             result.append(
                 {
