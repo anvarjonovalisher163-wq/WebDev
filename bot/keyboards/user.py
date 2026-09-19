@@ -1,10 +1,6 @@
-from aiogram.types import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    KeyboardButton,
-    ReplyKeyboardMarkup,
-    WebAppInfo,
-)
+from typing import Optional
+
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
 from bot.keyboards.admin import ADMIN_SETTINGS_BTN
 from bot.models.channel import MandatoryChannel
@@ -45,23 +41,21 @@ def welcome_actions_keyboard(referral_link: str) -> InlineKeyboardMarkup:
     )
 
 
-def main_reply_keyboard(webapp_url: str = "", is_admin: bool = False) -> ReplyKeyboardMarkup:
-    """Doimiy pastki menyu. Mini App manzili sozlangan bo'lsa: "Mening
-    takliflarim" to'g'ridan-to'g'ri Mini App'ning "Mening natijam" tabini
-    ochadi, "Reyting" esa alohida tugma sifatida kerak emas - xabar yozish
-    maydoni yonidagi tabiiy Telegram menyu tugmasi shu vazifani bajaradi.
-    Aks holda ikkalasi ham matnli (eski) rejimda ishlaydi. Adminlar uchun
-    qo'shimcha "Sozlamalar" tugmasi bilan."""
-    my_referrals_button = (
-        KeyboardButton(text=BTN_MY_REFERRALS, web_app=WebAppInfo(url=f"{webapp_url}/?tab=mine"))
-        if webapp_url
-        else KeyboardButton(text=BTN_MY_REFERRALS)
-    )
-    first_row = [my_referrals_button]
+def main_reply_keyboard(webapp_url: str = "", is_admin: bool = False) -> Optional[ReplyKeyboardMarkup]:
+    """Doimiy pastki menyu. Mini App manzili sozlangan bo'lsa, "Mening
+    takliflarim" va "Reyting" uchun alohida tugma kerak emas - ikkalasi ham
+    xabar yozish maydoni yonidagi tabiiy Telegram menyu tugmasi ("Reyting")
+    orqali ochiladigan yagona Mini App ichidagi tablarga aylantirilgan.
+    Shu holatda oddiy foydalanuvchi uchun pastki menyuda ko'rsatiladigan
+    hech narsa qolmaydi (None qaytadi). Mini App sozlanmagan bo'lsa,
+    ikkalasi ham matnli (eski) tugmalar sifatida ko'rsatiladi. Adminlar
+    uchun har doim qo'shimcha "Sozlamalar" tugmasi qo'shiladi."""
+    rows = []
     if not webapp_url:
-        first_row.append(KeyboardButton(text=BTN_LEADERBOARD))
-
-    rows = [first_row]
+        rows.append([KeyboardButton(text=BTN_MY_REFERRALS), KeyboardButton(text=BTN_LEADERBOARD)])
     if is_admin:
         rows.append([KeyboardButton(text=ADMIN_SETTINGS_BTN)])
+
+    if not rows:
+        return None
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)

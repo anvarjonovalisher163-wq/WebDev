@@ -1,6 +1,6 @@
 from aiogram import Bot, Router
 from aiogram.filters import CommandObject, CommandStart
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.config import settings as app_settings
@@ -44,10 +44,14 @@ async def cmd_start(
     # o'rnatamiz - har safar /start bosilganda qayta xabar yubormaslik uchun.
     if not user.reply_menu_shown:
         is_admin = await AdminRepo(session).get_by_tg_id(tg_user.id) is not None
-        await message.answer(
-            "📋 Asosiy menyu pastda yoqildi.",
-            reply_markup=main_reply_keyboard(app_settings.webapp_url, is_admin),
-        )
+        keyboard = main_reply_keyboard(app_settings.webapp_url, is_admin)
+        if keyboard is not None:
+            await message.answer("📋 Asosiy menyu pastda yoqildi.", reply_markup=keyboard)
+        else:
+            # Ko'rsatiladigan tugma yo'q - eski (agar bo'lsa) klaviaturani
+            # ko'rinmas xabar orqali tozalaymiz.
+            cleanup = await message.answer("⏳", reply_markup=ReplyKeyboardRemove())
+            await cleanup.delete()
         user.reply_menu_shown = True
         await session.commit()
 
