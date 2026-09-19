@@ -57,19 +57,34 @@ async def finalize_subscription(
         return
 
     settings = await SettingsRepo(session).get()
-    active_season = await SeasonRepo(session).get_active()
+    season_repo = SeasonRepo(session)
+    active_season = await season_repo.get_active()
     progress = await referral_service.get_progress(
         referrer.id, settings.required_referral_count, active_season.id
     )
 
-    try:
-        await bot.send_message(
-            referrer.tg_id,
-            (
-                "Tabriklaymiz! Siz taklif qilgan yangi foydalanuvchi barcha shartlarni bajardi.\n\n"
-                f"Tasdiqlangan takliflaringiz: {progress['approved']}/{progress['required']}."
-            ),
+    # Taklif qilingan foydalanuvchi botga JORIY mavsum boshlanishidan OLDIN
+    # ro'yxatdan o'tgan bo'lishi mumkin (masalan, havolani olib, obunani
+    # kechroq tasdiqlagan). Bunday holda bu taklif joriy mavsum hisobiga
+    # qo'shilmaydi - buni "0/N" ko'rsatish o'rniga aniq tushuntiramiz.
+    if referral.season_id != active_season.id:
+        referral_season = await season_repo.get_by_id(referral.season_id)
+        old_season_name = referral_season.name if referral_season else "oldingi mavsum"
+        confirmation_text = (
+            "Tabriklaymiz! Siz taklif qilgan foydalanuvchi barcha shartlarni bajardi.\n\n"
+            f"Diqqat: bu foydalanuvchi botdan {old_season_name} davomida (joriy mavsum "
+            "boshlanishidan oldin) ro'yxatdan o'tgan edi, shuning uchun bu taklif joriy "
+            "mavsum hisoblagichiga qo'shilmaydi.\n\n"
+            f"Joriy mavsumdagi tasdiqlangan takliflaringiz: {progress['approved']}/{progress['required']}."
         )
+    else:
+        confirmation_text = (
+            "Tabriklaymiz! Siz taklif qilgan yangi foydalanuvchi barcha shartlarni bajardi.\n\n"
+            f"Tasdiqlangan takliflaringiz: {progress['approved']}/{progress['required']}."
+        )
+
+    try:
+        await bot.send_message(referrer.tg_id, confirmation_text)
         if progress["remaining"] == 0:
             secret_link_text = await try_auto_grant_secret_link(
                 session, bot, referrer, settings, referral_service, active_season
