@@ -41,4 +41,6 @@ class User(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    reply_menu_shown: Mapped[bool] = mapped_column(Boolean, default=False)
+
     referrer: Mapped[Optional["User"]] = relationship(remote_side=[id])

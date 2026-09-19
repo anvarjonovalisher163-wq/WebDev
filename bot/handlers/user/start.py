@@ -21,16 +21,6 @@ async def cmd_start(
 ) -> None:
     tg_user = message.from_user
 
-    # Pastki (doimiy) menyuni sozlaymiz: "Mening takliflarim" / "Reyting", admin
-    # uchun qo'shimcha "Sozlamalar" tugmasi bilan. Bu xabar o'chirilmaydi -
-    # Telegram mijozlari klaviaturani o'rnatgan xabar o'chirilganda uni
-    # yashirib qo'yishi mumkin.
-    is_admin = await AdminRepo(session).get_by_tg_id(tg_user.id) is not None
-    await message.answer(
-        "📋 Asosiy menyu pastda yoqildi.",
-        reply_markup=main_reply_keyboard(app_settings.webapp_url, is_admin),
-    )
-
     subscription_service = SubscriptionService(bot)
     referral_service = ReferralService(session, subscription_service)
     user_service = UserService(session, referral_service)
@@ -48,6 +38,18 @@ async def cmd_start(
     if user.is_blocked:
         await message.answer("Siz botdan foydalanish huquqidan mahrum qilingansiz.")
         return
+
+    # Pastki (doimiy) menyuni ("Mening takliflarim" / "Reyting", adminlar uchun
+    # qo'shimcha "Sozlamalar") faqat foydalanuvchi uchun BIRINCHI marta
+    # o'rnatamiz - har safar /start bosilganda qayta xabar yubormaslik uchun.
+    if not user.reply_menu_shown:
+        is_admin = await AdminRepo(session).get_by_tg_id(tg_user.id) is not None
+        await message.answer(
+            "📋 Asosiy menyu pastda yoqildi.",
+            reply_markup=main_reply_keyboard(app_settings.webapp_url, is_admin),
+        )
+        user.reply_menu_shown = True
+        await session.commit()
 
     is_subscribed, not_subscribed = await check_gate(session, subscription_service, user)
     if not is_subscribed:
