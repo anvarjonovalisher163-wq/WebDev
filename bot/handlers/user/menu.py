@@ -9,16 +9,19 @@ from bot.handlers.user._common import check_gate, get_gate_text
 from bot.keyboards.user import (
     CB_REFRESH_MY_REFERRALS,
     CB_SHOW_INVITE,
+    CB_SHOW_LEADERBOARD,
     CB_SHOW_MY_REFERRALS,
     my_referrals_refresh_keyboard,
     subscription_gate_keyboard,
 )
 from bot.models.settings import BotSettings
 from bot.models.user import User
+from bot.repositories.season_repo import SeasonRepo
 from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
 from bot.services.referral_service import ReferralService
 from bot.services.secret_link_flow import try_auto_grant_secret_link
+from bot.services.season_service import SeasonService
 from bot.services.subscription_service import SubscriptionService
 from bot.services.user_service import build_referral_link
 
@@ -152,6 +155,18 @@ async def on_refresh_my_referrals(callback: CallbackQuery, session: AsyncSession
 
     if secret_link_text:
         await callback.message.answer(secret_link_text)
+
+
+@router.callback_query(lambda c: c.data == CB_SHOW_LEADERBOARD)
+async def on_show_leaderboard(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
+    user = await _require_ready_user_cb(callback, session, bot)
+    if user is None:
+        return
+
+    active_season = await SeasonRepo(session).get_active()
+    text = await SeasonService(session).get_leaderboard_text(active_season, highlight_user_id=user.id)
+    await callback.message.answer(text)
+    await callback.answer()
 
 
 @router.message(F.text.in_({_LEGACY_BTN_INVITE, _LEGACY_BTN_MY_REFERRALS}))

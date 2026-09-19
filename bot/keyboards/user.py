@@ -1,6 +1,6 @@
 from urllib.parse import quote
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 from bot.models.channel import MandatoryChannel
 
@@ -8,6 +8,7 @@ CB_CHECK_SUBSCRIPTION = "check_subscription"
 CB_REFRESH_MY_REFERRALS = "refresh_my_referrals"
 CB_SHOW_INVITE = "show_invite"
 CB_SHOW_MY_REFERRALS = "show_my_referrals"
+CB_SHOW_LEADERBOARD = "show_leaderboard"
 
 DEFAULT_SHARE_TEXT = "Yopiq kanalga qo'shilish uchun shu botga kiring!"
 
@@ -32,14 +33,19 @@ def my_referrals_refresh_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def welcome_actions_keyboard(referral_link: str, share_text: str = DEFAULT_SHARE_TEXT) -> InlineKeyboardMarkup:
+def welcome_actions_keyboard(
+    referral_link: str, share_text: str = DEFAULT_SHARE_TEXT, webapp_url: str = ""
+) -> InlineKeyboardMarkup:
     share_url = f"https://t.me/share/url?url={quote(referral_link, safe='')}&text={quote(share_text, safe='')}"
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="🔗 Taklif qilish", callback_data=CB_SHOW_INVITE),
-                InlineKeyboardButton(text="📤 Ulashish", url=share_url),
-            ],
-            [InlineKeyboardButton(text="📊 Mening takliflarim", callback_data=CB_SHOW_MY_REFERRALS)],
-        ]
-    )
+    rows = [
+        [
+            InlineKeyboardButton(text="🔗 Taklif qilish", callback_data=CB_SHOW_INVITE),
+            InlineKeyboardButton(text="📤 Ulashish", url=share_url),
+        ],
+        [InlineKeyboardButton(text="📊 Mening takliflarim", callback_data=CB_SHOW_MY_REFERRALS)],
+    ]
+    if webapp_url:
+        rows.append([InlineKeyboardButton(text="🏆 Reyting", web_app=WebAppInfo(url=webapp_url))])
+    else:
+        rows.append([InlineKeyboardButton(text="🏆 Reyting", callback_data=CB_SHOW_LEADERBOARD)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)

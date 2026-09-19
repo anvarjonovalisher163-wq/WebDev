@@ -39,6 +39,22 @@ services:
       - ./bot:/app/bot
       - ./alembic:/app/alembic
 
+  webapp:
+    build:
+      context: .
+      dockerfile: webapp/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./bot:/app/bot
+      - ./webapp:/app/webapp
+
 volumes:
   postgres_data:
   redis_data:

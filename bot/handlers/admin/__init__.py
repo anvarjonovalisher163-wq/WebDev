@@ -8,6 +8,7 @@ from bot.handlers.admin.panel import router as panel_router
 from bot.handlers.admin.referral_content import router as referral_content_router
 from bot.handlers.admin.requirements import router as requirements_router
 from bot.handlers.admin.search import router as search_router
+from bot.handlers.admin.seasons import router as seasons_router
 from bot.handlers.admin.secret_channel import router as secret_channel_router
 from bot.handlers.admin.stats import router as stats_router
 from bot.handlers.admin.welcome import router as welcome_router
@@ -26,3 +27,4 @@ router.include_router(broadcast_router)
 router.include_router(stats_router)
 router.include_router(search_router)
 router.include_router(admins_router)
+router.include_router(seasons_router)

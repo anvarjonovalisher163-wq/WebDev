@@ -22,6 +22,7 @@ qo'shilish uchun bir martalik, muddatli taklif havolasi beradi.
 - [x] Admin panel: welcome, kanallar, referral kontent, talablar
 - [x] Admin panel: broadcast, statistika, qidiruv, adminlar
 - [x] Xavfsizlik, logging, ishga tushirish yo'riqnomasi
+- [x] Mavsumlar (seasons), "Eng Faol Targibotchi" reytingi va Mini App
 
 ## Ishga tushirish
 
@@ -47,6 +48,7 @@ paydo bo'ladi).
 | `POSTGRES_*` | PostgreSQL ulanish ma'lumotlari |
 | `REDIS_*` | Redis ulanish ma'lumotlari (FSM storage) |
 | `LOG_LEVEL` | Konsol logging darajasi (masalan, `INFO`) |
+| `WEBAPP_URL` | Reyting Mini App HTTPS manzili (ixtiyoriy, domen tayyor bo'lganda) |
 
 ## Botga kerakli Telegram huquqlari
 
@@ -70,6 +72,8 @@ bo'limlarga ega bo'ladi:
 - **Talablar soni** — yopiq kanal uchun zarur tasdiqlangan referral soni
 - **Maxfiy kanal sozlamalari** — kanal, havola muddati, foydalanish limiti,
   qayta havola olish siyosati
+- **Mavsumlar** — joriy mavsum reytingi va "Yangi mavsum boshlash"
+  (g'olibni aniqlash + e'lon qilish + hisoblagichlarni nolga tushirish)
 - **E'lon yuborish** — barcha foydalanuvchilarga ommaviy xabar (oldindan
   ko'rish va tasdiqlash bilan)
 - **Statistika** — umumiy/referral statistikasi, konversiya voronkasi,
@@ -80,6 +84,72 @@ bo'limlarga ega bo'ladi:
 
 Oddiy foydalanuvchilar uchun `/admin` buyrug'i hech qanday ta'sir
 ko'rsatmaydi.
+
+## Mavsumlar va "Eng Faol Targibotchi" reytingi
+
+Loyiha **mavsumli (seasonal)** tizimda ishlaydi:
+
+- Har bir tasdiqlangan referral qaysi mavsumda qilinganini eslab qoladi
+  (`Referral.season_id`), shuning uchun mavsumlar statistikasi bir-biriga
+  aralashib ketmaydi.
+- Yopiq kanalga kirish uchun zarur bo'lgan umumiy referral hisoblagichi
+  (**Talablar soni**) mavsumdan qat'i nazar hammavaqt jamlanib boradi —
+  faqat reyting/g'olib mavsum bo'yicha hisoblanadi.
+- Admin panelda **"🏆 Mavsumlar"** bo'limi orqali joriy mavsum reytingini
+  ko'rish va **"Yangi mavsum boshlash"** tugmasi bilan mavsumni yakunlash
+  mumkin. Yakunlashda:
+  1. Shu mavsumda eng ko'p tasdiqlangan taklif qilgan foydalanuvchi
+     avtomatik **"Eng Faol Targibotchi"** deb topiladi va unga tabrik
+     xabari + tantanali animatsiya (🎉) yuboriladi.
+  2. Barcha foydalanuvchilarga mavsum yakuni va g'olib haqida e'lon
+     yuboriladi.
+  3. Yangi mavsum 0 dan boshlanadi (masalan, "2-mavsum").
+- Foydalanuvchilar botdagi **"🏆 Reyting"** tugmasi orqali joriy mavsum
+  TOP-10 ro'yxatini va o'z o'rnini ko'rishlari mumkin.
+
+### Reyting Mini App (CRM-style veb-interfeys)
+
+`webapp/` papkasida alohida FastAPI xizmati bor — u Telegram **Mini App**
+sifatida ochilib, reytingni chiroyli jadval ko'rinishida ko'rsatadi
+(kim nechta taklif qilgani, kim 1-o'rinda turgani va h.k.).
+
+Bu ishlashi uchun quyidagilar kerak (Telegram Mini App faqat **HTTPS
+domenda** ishlaydi, IP orqali ishlamaydi):
+
+1. **Domen** sotib oling (masalan `reyting.sizningdomeningiz.uz`) va uning
+   DNS `A` yozuvini serveringiz IP manziliga yo'naltiring.
+2. Serverga **nginx** va **certbot** o'rnating:
+   ```bash
+   apt install -y nginx certbot python3-certbot-nginx
+   ```
+3. `/etc/nginx/sites-available/reyting` faylini yarating:
+   ```nginx
+   server {
+       listen 80;
+       server_name reyting.sizningdomeningiz.uz;
+
+       location / {
+           proxy_pass http://127.0.0.1:8000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
+   }
+   ```
+   ```bash
+   ln -s /etc/nginx/sites-available/reyting /etc/nginx/sites-enabled/
+   nginx -t && systemctl reload nginx
+   certbot --nginx -d reyting.sizningdomeningiz.uz
+   ```
+4. `.env` faylida `WEBAPP_URL=https://reyting.sizningdomeningiz.uz` deb
+   qo'ying, so'ng:
+   ```bash
+   docker compose up -d --build
+   docker compose restart bot
+   ```
+5. Shundan keyin foydalanuvchilarga "🏆 Reyting" tugmasi to'g'ridan-to'g'ri
+   Mini App'ni ochadi. `WEBAPP_URL` bo'sh qolsa, tugma o'rniga oddiy matnli
+   reyting ko'rsatiladi — ya'ni domen hali tayyor bo'lmasa ham funksiya
+   ishlayveradi.
 
 ## Ma'lumotlar bazasini zaxiralash va tiklash
 
@@ -111,6 +181,7 @@ bot/
 
 alembic/            # DB migratsiyalari
 scripts/            # backup/restore skriptlari
+webapp/             # Reyting Mini App (FastAPI + statik frontend)
 ```
 
 ## Xavfsizlik

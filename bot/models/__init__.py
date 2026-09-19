@@ -4,6 +4,7 @@ from bot.models.base import Base
 from bot.models.channel import MandatoryChannel
 from bot.models.invite_link import InviteLink, InviteLinkStatus
 from bot.models.referral import Referral, ReferralStatus
+from bot.models.season import Season
 from bot.models.settings import BotSettings
 from bot.models.user import User
 
@@ -18,4 +19,5 @@ __all__ = [
     "BotSettings",
     "Admin",
     "AdminLog",
+    "Season",
 ]

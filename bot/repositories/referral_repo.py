@@ -11,10 +11,11 @@ class ReferralRepo:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create_pending(self, referrer_id: int, referred_id: int) -> Referral:
+    async def create_pending(self, referrer_id: int, referred_id: int, season_id: int) -> Referral:
         referral = Referral(
             referrer_id=referrer_id,
             referred_id=referred_id,
+            season_id=season_id,
             status=ReferralStatus.PENDING,
         )
         self.session.add(referral)
@@ -62,3 +63,37 @@ class ReferralRepo:
 
     async def touch_checked(self, referral: Referral) -> None:
         referral.last_checked_at = datetime.now(timezone.utc)
+
+    async def season_leaderboard(self, season_id: int, limit: int = 10) -> list[tuple[int, int]]:
+        """Mavsum ichida eng ko'p tasdiqlangan referral qilganlar ro'yxati:
+        [(referrer_id, tasdiqlangan_soni), ...], ko'p -> kam, teng bo'lsa
+        avvalroq shu songa yetgan referrer oldinda turadi."""
+        result = await self.session.execute(
+            select(
+                Referral.referrer_id,
+                func.count().label("cnt"),
+                func.min(Referral.approved_at).label("first_approved"),
+            )
+            .where(Referral.season_id == season_id, Referral.status == ReferralStatus.APPROVED)
+            .group_by(Referral.referrer_id)
+            .order_by(func.count().desc(), func.min(Referral.approved_at).asc())
+            .limit(limit)
+        )
+        return [(row.referrer_id, row.cnt) for row in result.all()]
+
+    async def season_rank_of(self, season_id: int, referrer_id: int) -> Optional[tuple[int, int]]:
+        """(o'rin, soni) - agar foydalanuvchida shu mavsumda tasdiqlangan referral bo'lmasa None."""
+        result = await self.session.execute(
+            select(
+                Referral.referrer_id,
+                func.count().label("cnt"),
+                func.min(Referral.approved_at).label("first_approved"),
+            )
+            .where(Referral.season_id == season_id, Referral.status == ReferralStatus.APPROVED)
+            .group_by(Referral.referrer_id)
+            .order_by(func.count().desc(), func.min(Referral.approved_at).asc())
+        )
+        for index, row in enumerate(result.all(), start=1):
+            if row.referrer_id == referrer_id:
+                return index, row.cnt
+        return None

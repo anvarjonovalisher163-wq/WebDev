@@ -27,8 +27,8 @@ class ReferralService:
             return None
         return referrer
 
-    async def register_referral(self, referrer: User, referred: User) -> Referral:
-        return await self.referral_repo.create_pending(referrer.id, referred.id)
+    async def register_referral(self, referrer: User, referred: User, season_id: int) -> Referral:
+        return await self.referral_repo.create_pending(referrer.id, referred.id, season_id)
 
     async def try_confirm(
         self, referral: Referral, referred_user: User, channels: list[MandatoryChannel]

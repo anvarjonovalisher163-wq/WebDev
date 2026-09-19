@@ -3,6 +3,7 @@ from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot.config import settings as app_settings
 from bot.handlers.user._common import check_gate, finalize_subscription, get_gate_text, get_welcome_text
 from bot.keyboards.user import DEFAULT_SHARE_TEXT, subscription_gate_keyboard, welcome_actions_keyboard
 from bot.repositories.settings_repo import SettingsRepo
@@ -59,7 +60,9 @@ async def cmd_start(
     settings = await SettingsRepo(session).get()
     link = build_referral_link(bot_username, user.tg_id)
     welcome_text = get_welcome_text(settings, user.first_name, link)
-    keyboard = welcome_actions_keyboard(link, settings.share_text or DEFAULT_SHARE_TEXT)
+    keyboard = welcome_actions_keyboard(
+        link, settings.share_text or DEFAULT_SHARE_TEXT, app_settings.webapp_url
+    )
 
     if settings.welcome_media_file_id and settings.welcome_media_type == "photo":
         await message.answer_photo(settings.welcome_media_file_id, caption=welcome_text, reply_markup=keyboard)

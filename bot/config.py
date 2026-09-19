@@ -23,6 +23,10 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
 
+    # Reyting Mini App manzili (https://domen.uz kabi). Bo'sh bo'lsa, "🏆 Reyting"
+    # tugmasi Mini App o'rniga oddiy matnli reytingni chiqaradi.
+    webapp_url: str = ""
+
     @property
     def super_admin_id_list(self) -> list[int]:
         return [int(x) for x in self.super_admin_ids.split(",") if x.strip()]

@@ -31,6 +31,9 @@ class Referral(Base):
     referred_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    season_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("seasons.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
 
     status: Mapped[ReferralStatus] = mapped_column(
         Enum(ReferralStatus, name="referral_status"), default=ReferralStatus.PENDING, index=True

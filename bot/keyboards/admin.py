@@ -39,6 +39,10 @@ CB_ADMIN_SEARCH = "admin:search"
 CB_ADMIN_ADMINS = "admin:admins"
 CB_ADMIN_ADMIN_ADD = "admin:admin_add"
 
+CB_ADMIN_SEASONS = "admin:seasons"
+CB_ADMIN_SEASON_END_PROMPT = "admin:season_end_prompt"
+CB_ADMIN_SEASON_END_CONFIRM = "admin:season_end_confirm"
+
 CB_ADMIN_BACK = "admin:back"
 CB_ADMIN_CANCEL = "admin:cancel"
 
@@ -55,6 +59,7 @@ def admin_main_menu_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="📤 Ulashish matni", callback_data=CB_ADMIN_SHARE_TEXT)],
             [InlineKeyboardButton(text="🔢 Talablar soni", callback_data=CB_ADMIN_REQUIREMENTS)],
             [InlineKeyboardButton(text="🔐 Maxfiy kanal sozlamalari", callback_data=CB_ADMIN_SECRET_CHANNEL)],
+            [InlineKeyboardButton(text="🏆 Mavsumlar", callback_data=CB_ADMIN_SEASONS)],
             [InlineKeyboardButton(text="📤 E'lon yuborish", callback_data=CB_ADMIN_BROADCAST)],
             [InlineKeyboardButton(text="📊 Statistika", callback_data=CB_ADMIN_STATS)],
             [InlineKeyboardButton(text="🔍 Foydalanuvchini qidirish", callback_data=CB_ADMIN_SEARCH)],
@@ -172,6 +177,24 @@ def user_detail_keyboard(user: User) -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=block_text, callback_data=f"admin:user_toggle_block:{user.id}")],
             [InlineKeyboardButton(text="✉️ Xabar yuborish", callback_data=f"admin:user_message:{user.id}")],
             [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_SEARCH)],
+        ]
+    )
+
+
+def seasons_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🔁 Yangi mavsum boshlash", callback_data=CB_ADMIN_SEASON_END_PROMPT)],
+            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)],
+        ]
+    )
+
+
+def season_end_confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Ha, yakunlash", callback_data=CB_ADMIN_SEASON_END_CONFIRM)],
+            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data=CB_ADMIN_SEASONS)],
         ]
     )
 

@@ -4,6 +4,7 @@ from typing import NamedTuple, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.user import User
+from bot.repositories.season_repo import SeasonRepo
 from bot.repositories.user_repo import UserRepo
 from bot.services.referral_service import ReferralService
 
@@ -32,6 +33,7 @@ class UserService:
     def __init__(self, session: AsyncSession, referral_service: ReferralService):
         self.session = session
         self.user_repo = UserRepo(session)
+        self.season_repo = SeasonRepo(session)
         self.referral_service = referral_service
 
     async def register_or_touch(
@@ -64,6 +66,7 @@ class UserService:
         )
 
         if referrer is not None:
-            await self.referral_service.register_referral(referrer, new_user)
+            active_season = await self.season_repo.get_active()
+            await self.referral_service.register_referral(referrer, new_user, active_season.id)
 
         return StartResult(user=new_user, is_new=True)
