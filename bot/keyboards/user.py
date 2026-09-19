@@ -1,10 +1,4 @@
-from aiogram.types import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    KeyboardButton,
-    ReplyKeyboardMarkup,
-    WebAppInfo,
-)
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
 from bot.keyboards.admin import ADMIN_SETTINGS_BTN
 from bot.models.channel import MandatoryChannel
@@ -46,15 +40,15 @@ def welcome_actions_keyboard(referral_link: str) -> InlineKeyboardMarkup:
 
 
 def main_reply_keyboard(webapp_url: str = "", is_admin: bool = False) -> ReplyKeyboardMarkup:
-    """Doimiy pastki menyu: "Mening takliflarim" va "Reyting" (agar Mini App
-    manzili sozlangan bo'lsa, Reyting to'g'ridan-to'g'ri uni ochadi), adminlar
+    """Doimiy pastki menyu: "Mening takliflarim" doim bor. "Reyting" faqat Mini
+    App manzili sozlanmagan bo'lsa qo'shiladi - aks holda xabar yozish maydoni
+    yonidagi tabiiy Telegram menyu tugmasi shu vazifani bajaradi. Adminlar
     uchun qo'shimcha "Sozlamalar" tugmasi bilan."""
-    leaderboard_button = (
-        KeyboardButton(text=BTN_LEADERBOARD, web_app=WebAppInfo(url=webapp_url))
-        if webapp_url
-        else KeyboardButton(text=BTN_LEADERBOARD)
-    )
-    rows = [[KeyboardButton(text=BTN_MY_REFERRALS), leaderboard_button]]
+    first_row = [KeyboardButton(text=BTN_MY_REFERRALS)]
+    if not webapp_url:
+        first_row.append(KeyboardButton(text=BTN_LEADERBOARD))
+
+    rows = [first_row]
     if is_admin:
         rows.append([KeyboardButton(text=ADMIN_SETTINGS_BTN)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)

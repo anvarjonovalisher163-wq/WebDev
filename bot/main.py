@@ -5,6 +5,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.types import MenuButtonDefault, MenuButtonWebApp, WebAppInfo
 from loguru import logger
 
 from bot.config import settings
@@ -40,6 +41,15 @@ async def main() -> None:
 
     bot_info = await bot.get_me()
     dp["bot_username"] = bot_info.username
+
+    # Xabar yozish maydoni yonidagi tabiiy Telegram menyu tugmasi - agar Mini App
+    # manzili sozlangan bo'lsa, "Reyting" deb to'g'ridan-to'g'ri uni ochadi.
+    if settings.webapp_url:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(text="Reyting", web_app=WebAppInfo(url=settings.webapp_url))
+        )
+    else:
+        await bot.set_chat_menu_button(menu_button=MenuButtonDefault())
 
     setup_jobs(bot)
     scheduler.start()
