@@ -1,9 +1,14 @@
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from bot.keyboards.admin import CB_ADMIN_BACK, CB_ADMIN_CANCEL, admin_main_menu_keyboard
+from bot.keyboards.admin import (
+    ADMIN_SETTINGS_BTN,
+    CB_ADMIN_BACK,
+    CB_ADMIN_CANCEL,
+    admin_main_menu_keyboard,
+)
 
 router = Router(name="admin_panel")
 
@@ -11,6 +16,7 @@ ADMIN_MENU_TEXT = "Admin panel:"
 
 
 @router.message(Command("admin"))
+@router.message(F.text == ADMIN_SETTINGS_BTN)
 async def cmd_admin(message: Message, state: FSMContext) -> None:
     await state.clear()
     await message.answer(ADMIN_MENU_TEXT, reply_markup=admin_main_menu_keyboard())

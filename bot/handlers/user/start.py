@@ -5,7 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.config import settings as app_settings
 from bot.handlers.user._common import check_gate, finalize_subscription, get_gate_text, get_welcome_text
+from bot.keyboards.admin import admin_settings_reply_keyboard
 from bot.keyboards.user import DEFAULT_SHARE_TEXT, subscription_gate_keyboard, welcome_actions_keyboard
+from bot.repositories.admin_repo import AdminRepo
 from bot.repositories.settings_repo import SettingsRepo
 from bot.services.referral_service import ReferralService
 from bot.services.subscription_service import SubscriptionService
@@ -20,10 +22,14 @@ async def cmd_start(
 ) -> None:
     tg_user = message.from_user
 
-    # Eski pastki (reply) klaviatura hali foydalanuvchi ekranida qolgan bo'lishi
-    # mumkin - uni bosishni kutmasdan avtomatik tozalaymiz.
-    cleanup = await message.answer("⏳", reply_markup=ReplyKeyboardRemove())
-    await cleanup.delete()
+    # Pastki (reply) klaviaturani sozlaymiz: adminlar uchun doimiy "Sozlamalar"
+    # tugmasi, boshqalar uchun eski klaviaturani tozalash (ko'rinmas xabar
+    # yuborib, darhol o'chirish - klaviatura holati saqlanib qoladi).
+    is_admin = await AdminRepo(session).get_by_tg_id(tg_user.id) is not None
+    keyboard_setup = await message.answer(
+        "⏳", reply_markup=admin_settings_reply_keyboard() if is_admin else ReplyKeyboardRemove()
+    )
+    await keyboard_setup.delete()
 
     subscription_service = SubscriptionService(bot)
     referral_service = ReferralService(session, subscription_service)
