@@ -16,6 +16,7 @@ async def try_auto_grant_secret_link(
     user: User,
     settings: BotSettings,
     referral_service: ReferralService,
+    season_id: int,
 ) -> Optional[str]:
     """Foydalanuvchi barcha shartlarni bajargan, hali maxfiy havola olmagan
     va yopiq kanalga qo'shilmagan bo'lsa, avtomatik ravishda bir martalik
@@ -28,7 +29,7 @@ async def try_auto_grant_secret_link(
 
     channels = await ChannelRepo(session).list_active()
     await referral_service.recheck_approved_before_secret_link(user.id, channels)
-    progress = await referral_service.get_progress(user.id, settings.required_referral_count)
+    progress = await referral_service.get_progress(user.id, settings.required_referral_count, season_id)
     if progress["remaining"] > 0:
         return None
 

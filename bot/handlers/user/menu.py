@@ -122,8 +122,11 @@ async def _render_my_referrals(
 ) -> tuple[str, Optional[str]]:
     """Statistika matnini va (agar shu payt shartlar bajarilgan bo'lsa) avtomatik
     berilgan maxfiy havola matnini qaytaradi."""
-    secret_link_text = await try_auto_grant_secret_link(session, bot, user, settings, referral_service)
-    progress = await referral_service.get_progress(user.id, settings.required_referral_count)
+    active_season = await SeasonRepo(session).get_active()
+    secret_link_text = await try_auto_grant_secret_link(
+        session, bot, user, settings, referral_service, active_season.id
+    )
+    progress = await referral_service.get_progress(user.id, settings.required_referral_count, active_season.id)
     return _build_my_referrals_text(user, progress), secret_link_text
 
 

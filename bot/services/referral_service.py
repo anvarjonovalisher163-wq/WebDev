@@ -47,12 +47,13 @@ class ReferralService:
         await self.referral_repo.approve(referral)
         return True
 
-    async def get_progress(self, referrer_id: int, required_count: int) -> dict:
-        approved = await self.referral_repo.count_by_referrer_and_status(
-            referrer_id, ReferralStatus.APPROVED
+    async def get_progress(self, referrer_id: int, required_count: int, season_id: int) -> dict:
+        """Joriy mavsum ichidagi progress - mavsum yangilanganda 0 dan boshlanadi."""
+        approved = await self.referral_repo.count_by_referrer_and_status_in_season(
+            referrer_id, ReferralStatus.APPROVED, season_id
         )
-        pending = await self.referral_repo.count_by_referrer_and_status(
-            referrer_id, ReferralStatus.PENDING
+        pending = await self.referral_repo.count_by_referrer_and_status_in_season(
+            referrer_id, ReferralStatus.PENDING, season_id
         )
         return {
             "required": required_count,

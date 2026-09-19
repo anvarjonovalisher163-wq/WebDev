@@ -52,6 +52,20 @@ class ReferralRepo:
         )
         return result.scalar_one()
 
+    async def count_by_referrer_and_status_in_season(
+        self, referrer_id: int, status: ReferralStatus, season_id: int
+    ) -> int:
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(Referral)
+            .where(
+                Referral.referrer_id == referrer_id,
+                Referral.status == status,
+                Referral.season_id == season_id,
+            )
+        )
+        return result.scalar_one()
+
     async def approve(self, referral: Referral) -> None:
         referral.status = ReferralStatus.APPROVED
         referral.approved_at = datetime.now(timezone.utc)

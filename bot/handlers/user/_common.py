@@ -6,6 +6,7 @@ from bot.models.settings import BotSettings
 from bot.models.user import User
 from bot.repositories.channel_repo import ChannelRepo
 from bot.repositories.referral_repo import ReferralRepo
+from bot.repositories.season_repo import SeasonRepo
 from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
 from bot.services.referral_service import ReferralService
@@ -56,7 +57,10 @@ async def finalize_subscription(
         return
 
     settings = await SettingsRepo(session).get()
-    progress = await referral_service.get_progress(referrer.id, settings.required_referral_count)
+    active_season = await SeasonRepo(session).get_active()
+    progress = await referral_service.get_progress(
+        referrer.id, settings.required_referral_count, active_season.id
+    )
 
     try:
         await bot.send_message(
@@ -68,7 +72,7 @@ async def finalize_subscription(
         )
         if progress["remaining"] == 0:
             secret_link_text = await try_auto_grant_secret_link(
-                session, bot, referrer, settings, referral_service
+                session, bot, referrer, settings, referral_service, active_season.id
             )
             if secret_link_text:
                 await bot.send_message(referrer.tg_id, secret_link_text)
