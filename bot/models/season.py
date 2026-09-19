@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bot.models.base import Base
@@ -23,3 +23,8 @@ class Season(Base):
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     winner_referral_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # Har bir mavsum o'zining yopiq kanaliga ega bo'lishi mumkin - yangi mavsum
+    # boshlanganda admin uni qaytadan sozlashi kerak.
+    secret_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    secret_channel_title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

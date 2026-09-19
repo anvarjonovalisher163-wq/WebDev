@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import BigInteger, Boolean, Integer, String, Text
+from sqlalchemy import Boolean, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bot.models.base import Base
@@ -24,9 +24,6 @@ class BotSettings(Base):
     subscription_gate_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     required_referral_count: Mapped[int] = mapped_column(Integer, default=5)
-
-    secret_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    secret_channel_title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     link_ttl_minutes: Mapped[int] = mapped_column(Integer, default=30)
     link_member_limit: Mapped[int] = mapped_column(Integer, default=1)

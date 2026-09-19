@@ -101,6 +101,8 @@ async def on_season_new_name_received(
     )
     await message.answer(
         f"✅ {result.closed_season.name} yakunlandi, {result.new_season.name} boshlandi.\n\n"
-        f"{winner_line}",
+        f"{winner_line}\n\n"
+        "⚠️ Yangi mavsum uchun yopiq kanal hali sozlanmagan - \"🔐 Maxfiy kanal "
+        "sozlamalari\" bo'limidan yangi (yoki eski) kanalni qayta belgilang.",
         reply_markup=admin_main_menu_keyboard(),
     )

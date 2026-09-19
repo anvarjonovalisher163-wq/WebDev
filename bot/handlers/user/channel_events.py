@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.invite_link import InviteLinkStatus
 from bot.repositories.invite_repo import InviteRepo
-from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
 from bot.services.invite_service import InviteService
 
@@ -19,10 +18,6 @@ _LEFT_STATUSES = {"left", "kicked"}
 
 @router.chat_member()
 async def on_private_channel_join(event: ChatMemberUpdated, session: AsyncSession, bot: Bot) -> None:
-    settings = await SettingsRepo(session).get()
-    if settings.secret_channel_id is None or event.chat.id != settings.secret_channel_id:
-        return
-
     if event.new_chat_member.status not in _JOINED_STATUSES:
         return
     if event.old_chat_member.status not in _LEFT_STATUSES:
@@ -45,7 +40,7 @@ async def on_private_channel_join(event: ChatMemberUpdated, session: AsyncSessio
     user.joined_private_channel_at = datetime.now(timezone.utc)
 
     invite_service = InviteService(session, bot)
-    await invite_service.mark_used_and_revoke(link, settings)
+    await invite_service.mark_used_and_revoke(link)
     await session.commit()
 
     try:

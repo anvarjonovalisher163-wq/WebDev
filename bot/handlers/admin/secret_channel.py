@@ -16,6 +16,7 @@ from bot.keyboards.admin import (
     cancel_keyboard,
     secret_channel_menu_keyboard,
 )
+from bot.repositories.season_repo import SeasonRepo
 from bot.repositories.settings_repo import SettingsRepo
 from bot.services.audit import log_admin_action
 from bot.states.admin_states import SecretChannelStates
@@ -34,24 +35,27 @@ def _normalize_identifier(raw: str) -> Union[str, int]:
     return f"@{raw}"
 
 
-def _settings_text(settings) -> str:
-    channel_line = settings.secret_channel_title or "(sozlanmagan)"
+def _settings_text(settings, season) -> str:
+    channel_line = season.secret_channel_title or "(sozlanmagan)"
     reissue_label = "yoqilgan" if settings.reissue_allowed else "o'chirilgan"
     return (
-        "Maxfiy kanal sozlamalari:\n\n"
+        f"Maxfiy kanal sozlamalari ({season.name}):\n\n"
         f"Kanal: {channel_line}\n"
         f"Amal qilish muddati: {settings.link_ttl_minutes} daqiqa\n"
         f"Foydalanish limiti: {settings.link_member_limit} kishi\n"
         f"Qayta havola olish: {reissue_label}\n"
-        f"Maksimal qayta urinish: {settings.max_reissue_attempts} marta"
+        f"Maksimal qayta urinish: {settings.max_reissue_attempts} marta\n\n"
+        "Diqqat: har bir mavsum o'z yopiq kanaliga ega - yangi mavsum "
+        "boshlanganda kanalni qaytadan sozlash kerak bo'ladi."
     )
 
 
 @router.callback_query(lambda c: c.data == CB_ADMIN_SECRET_CHANNEL)
 async def on_secret_channel_menu(callback: CallbackQuery, session: AsyncSession) -> None:
     settings = await SettingsRepo(session).get()
+    season = await SeasonRepo(session).get_active()
     await callback.message.edit_text(
-        _settings_text(settings), reply_markup=secret_channel_menu_keyboard(settings.reissue_allowed)
+        _settings_text(settings, season), reply_markup=secret_channel_menu_keyboard(settings.reissue_allowed)
     )
     await callback.answer()
 
@@ -92,13 +96,15 @@ async def on_channel_identifier_received(
         return
 
     settings = await SettingsRepo(session).get()
-    settings.secret_channel_id = chat.id
-    settings.secret_channel_title = chat.title or chat.username or str(chat.id)
+    season = await SeasonRepo(session).get_active()
+    season.secret_channel_id = chat.id
+    season.secret_channel_title = chat.title or chat.username or str(chat.id)
     await log_admin_action(session, message.from_user.id, "set_secret_channel", str(chat.id))
     await session.commit()
     await state.clear()
     await message.answer(
-        "Maxfiy kanal sozlandi.", reply_markup=secret_channel_menu_keyboard(settings.reissue_allowed)
+        f"Maxfiy kanal {season.name} uchun sozlandi.",
+        reply_markup=secret_channel_menu_keyboard(settings.reissue_allowed),
     )
 
 
@@ -164,9 +170,10 @@ async def on_toggle_reissue(callback: CallbackQuery, session: AsyncSession) -> N
     settings.reissue_allowed = not settings.reissue_allowed
     await log_admin_action(session, callback.from_user.id, "toggle_reissue", str(settings.reissue_allowed))
     await session.commit()
+    season = await SeasonRepo(session).get_active()
     await callback.answer("Sozlama o'zgartirildi")
     await callback.message.edit_text(
-        _settings_text(settings), reply_markup=secret_channel_menu_keyboard(settings.reissue_allowed)
+        _settings_text(settings, season), reply_markup=secret_channel_menu_keyboard(settings.reissue_allowed)
     )
 
 

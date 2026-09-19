@@ -124,7 +124,7 @@ async def _render_my_referrals(
     berilgan maxfiy havola matnini qaytaradi."""
     active_season = await SeasonRepo(session).get_active()
     secret_link_text = await try_auto_grant_secret_link(
-        session, bot, user, settings, referral_service, active_season.id
+        session, bot, user, settings, referral_service, active_season
     )
     progress = await referral_service.get_progress(user.id, settings.required_referral_count, active_season.id)
     return _build_my_referrals_text(user, progress), secret_link_text

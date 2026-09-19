@@ -72,7 +72,7 @@ async def finalize_subscription(
         )
         if progress["remaining"] == 0:
             secret_link_text = await try_auto_grant_secret_link(
-                session, bot, referrer, settings, referral_service, active_season.id
+                session, bot, referrer, settings, referral_service, active_season
             )
             if secret_link_text:
                 await bot.send_message(referrer.tg_id, secret_link_text)

@@ -17,12 +17,14 @@ class InviteRepo:
         telegram_link: str,
         expires_at: datetime,
         member_limit: int,
+        channel_id: int,
     ) -> InviteLink:
         link = InviteLink(
             user_id=user_id,
             telegram_link=telegram_link,
             expires_at=expires_at,
             member_limit=member_limit,
+            channel_id=channel_id,
             status=InviteLinkStatus.ACTIVE,
         )
         self.session.add(link)
