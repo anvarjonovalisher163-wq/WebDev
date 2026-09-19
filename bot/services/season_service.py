@@ -50,7 +50,7 @@ class SeasonService:
         self, season: Season, limit: int = 10, highlight_user_id: Optional[int] = None
     ) -> str:
         rows = await self.get_leaderboard_rows(season, limit=limit)
-        if not rows:
+        if not rows or rows[0]["count"] == 0:
             return f"🏆 {season.name} reytingi\n\nHali hech kim tasdiqlangan taklif qilmagan."
 
         lines = [f"🏆 {season.name} reytingi (TOP {len(rows)}):", ""]
@@ -76,7 +76,7 @@ class SeasonService:
 
         winner: Optional[User] = None
         winner_count = 0
-        if top:
+        if top and top[0][1] > 0:
             winner_id, winner_count = top[0]
             winner = await self.user_repo.get_by_id(winner_id)
 

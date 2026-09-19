@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.referral import Referral, ReferralStatus
+from bot.models.user import User
 
 
 class ReferralRepo:
@@ -67,50 +68,53 @@ class ReferralRepo:
     async def season_leaderboard(
         self, season_id: int, limit: Optional[int] = 10, offset: int = 0
     ) -> list[tuple[int, int]]:
-        """Mavsum ichida eng ko'p tasdiqlangan referral qilganlar ro'yxati:
-        [(referrer_id, tasdiqlangan_soni), ...], ko'p -> kam, teng bo'lsa
-        avvalroq shu songa yetgan referrer oldinda turadi. `limit=None` -
-        hammasini qaytaradi."""
-        query = (
+        """Botdan foydalangan (bloklanmagan) BARCHA foydalanuvchilar ro'yxati:
+        [(user_id, shu_mavsumda_tasdiqlangan_soni), ...], ko'p -> kam. Hech kimni
+        taklif qilmaganlar ham 0 soni bilan ro'yxatda qoladi. Teng bo'lsa,
+        avvalroq shu songa yetgan oldinda, undan keyin ro'yxatga avvalroq
+        qo'shilgan oldinda turadi. `limit=None` - hammasini qaytaradi."""
+        counts = (
             select(
-                Referral.referrer_id,
+                Referral.referrer_id.label("referrer_id"),
                 func.count().label("cnt"),
                 func.min(Referral.approved_at).label("first_approved"),
             )
             .where(Referral.season_id == season_id, Referral.status == ReferralStatus.APPROVED)
             .group_by(Referral.referrer_id)
-            .order_by(func.count().desc(), func.min(Referral.approved_at).asc())
+            .subquery()
+        )
+        query = (
+            select(
+                User.id.label("user_id"),
+                func.coalesce(counts.c.cnt, 0).label("cnt"),
+            )
+            .select_from(User)
+            .outerjoin(counts, counts.c.referrer_id == User.id)
+            .where(User.is_blocked.is_(False))
+            .order_by(
+                func.coalesce(counts.c.cnt, 0).desc(),
+                counts.c.first_approved.asc().nulls_last(),
+                User.created_at.asc(),
+            )
             .offset(offset)
         )
         if limit is not None:
             query = query.limit(limit)
         result = await self.session.execute(query)
-        return [(row.referrer_id, row.cnt) for row in result.all()]
+        return [(row.user_id, row.cnt) for row in result.all()]
 
     async def season_participant_count(self, season_id: int) -> int:
-        """Shu mavsumda kamida bitta tasdiqlangan referrali bor foydalanuvchilar soni."""
-        subquery = (
-            select(Referral.referrer_id)
-            .where(Referral.season_id == season_id, Referral.status == ReferralStatus.APPROVED)
-            .group_by(Referral.referrer_id)
-            .subquery()
+        """Botdan foydalanadigan (bloklanmagan) barcha foydalanuvchilar soni -
+        reytingda ko'rsatiladiganlarning umumiy soni."""
+        result = await self.session.execute(
+            select(func.count()).select_from(User).where(User.is_blocked.is_(False))
         )
-        result = await self.session.execute(select(func.count()).select_from(subquery))
         return result.scalar_one()
 
     async def season_rank_of(self, season_id: int, referrer_id: int) -> Optional[tuple[int, int]]:
-        """(o'rin, soni) - agar foydalanuvchida shu mavsumda tasdiqlangan referral bo'lmasa None."""
-        result = await self.session.execute(
-            select(
-                Referral.referrer_id,
-                func.count().label("cnt"),
-                func.min(Referral.approved_at).label("first_approved"),
-            )
-            .where(Referral.season_id == season_id, Referral.status == ReferralStatus.APPROVED)
-            .group_by(Referral.referrer_id)
-            .order_by(func.count().desc(), func.min(Referral.approved_at).asc())
-        )
-        for index, row in enumerate(result.all(), start=1):
-            if row.referrer_id == referrer_id:
-                return index, row.cnt
+        """(o'rin, soni) - foydalanuvchi bloklangan bo'lsa None."""
+        rows = await self.season_leaderboard(season_id, limit=None)
+        for index, (user_id, cnt) in enumerate(rows, start=1):
+            if user_id == referrer_id:
+                return index, cnt
         return None
