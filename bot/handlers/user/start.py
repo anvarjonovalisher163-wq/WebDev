@@ -22,14 +22,18 @@ async def cmd_start(
 ) -> None:
     tg_user = message.from_user
 
-    # Pastki (reply) klaviaturani sozlaymiz: adminlar uchun doimiy "Sozlamalar"
-    # tugmasi, boshqalar uchun eski klaviaturani tozalash (ko'rinmas xabar
-    # yuborib, darhol o'chirish - klaviatura holati saqlanib qoladi).
+    # Pastki (reply) klaviaturani sozlaymiz. Admin uchun doimiy "Sozlamalar"
+    # tugmasini o'rnatuvchi xabar o'chirilmaydi - Telegram mijozlari
+    # klaviaturani o'rnatgan xabar o'chirilganda uni yashirib qo'yishi mumkin,
+    # shuning uchun bu xabar ekranda qoladi. Oddiy foydalanuvchilar uchun esa
+    # eski klaviaturani tozalovchi xabar ko'rinmas tarzda o'chiriladi (maqsad
+    # "klaviatura yo'q" holati, uni o'chirish bu holatni buzmaydi).
     is_admin = await AdminRepo(session).get_by_tg_id(tg_user.id) is not None
-    keyboard_setup = await message.answer(
-        "⏳", reply_markup=admin_settings_reply_keyboard() if is_admin else ReplyKeyboardRemove()
-    )
-    await keyboard_setup.delete()
+    if is_admin:
+        await message.answer("⚙️ Admin rejimi yoqilgan.", reply_markup=admin_settings_reply_keyboard())
+    else:
+        cleanup = await message.answer("⏳", reply_markup=ReplyKeyboardRemove())
+        await cleanup.delete()
 
     subscription_service = SubscriptionService(bot)
     referral_service = ReferralService(session, subscription_service)
