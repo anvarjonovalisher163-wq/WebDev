@@ -2,15 +2,15 @@ from typing import Optional
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.user._common import check_gate, get_gate_text
 from bot.keyboards.user import (
+    BTN_LEADERBOARD,
+    BTN_MY_REFERRALS,
     CB_REFRESH_MY_REFERRALS,
     CB_SHOW_INVITE,
-    CB_SHOW_LEADERBOARD,
-    CB_SHOW_MY_REFERRALS,
     my_referrals_refresh_keyboard,
     subscription_gate_keyboard,
 )
@@ -26,12 +26,6 @@ from bot.services.subscription_service import SubscriptionService
 from bot.services.user_service import build_referral_link
 
 router = Router(name="user_menu")
-
-# Eski (endi ishlatilmaydigan) pastki klaviaturadagi tugma matnlari - faqat
-# foydalanuvchi ekranida hali qolib ketgan bo'lishi mumkin bo'lgan eski
-# klaviaturani tozalash uchun saqlanadi.
-_LEGACY_BTN_INVITE = "🔗 Taklif qilish"
-_LEGACY_BTN_MY_REFERRALS = "📊 Mening takliflarim"
 
 
 async def _resolve_active_user(
@@ -65,6 +59,19 @@ async def _require_ready_user_cb(callback: CallbackQuery, session: AsyncSession,
         )
     else:
         await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
+    return None
+
+
+async def _require_ready_user_msg(message: Message, session: AsyncSession, bot: Bot) -> Optional[User]:
+    user, not_subscribed = await _resolve_active_user(session, bot, message.from_user.id)
+    if user is not None:
+        return user
+
+    if not_subscribed:
+        settings = await SettingsRepo(session).get()
+        await message.answer(get_gate_text(settings), reply_markup=subscription_gate_keyboard(not_subscribed))
+    else:
+        await message.answer("Avval /start buyrug'ini yuboring.")
     return None
 
 
@@ -120,9 +127,9 @@ async def _render_my_referrals(
     return _build_my_referrals_text(user, progress), secret_link_text
 
 
-@router.callback_query(lambda c: c.data == CB_SHOW_MY_REFERRALS)
-async def on_my_referrals_inline(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
-    user = await _require_ready_user_cb(callback, session, bot)
+@router.message(F.text == BTN_MY_REFERRALS)
+async def on_my_referrals_button(message: Message, session: AsyncSession, bot: Bot) -> None:
+    user = await _require_ready_user_msg(message, session, bot)
     if user is None:
         return
 
@@ -130,10 +137,9 @@ async def on_my_referrals_inline(callback: CallbackQuery, session: AsyncSession,
     referral_service = ReferralService(session, SubscriptionService(bot))
     text, secret_link_text = await _render_my_referrals(session, bot, user, settings, referral_service)
 
-    await callback.message.answer(text, reply_markup=my_referrals_refresh_keyboard())
-    await callback.answer()
+    await message.answer(text, reply_markup=my_referrals_refresh_keyboard())
     if secret_link_text:
-        await callback.message.answer(secret_link_text)
+        await message.answer(secret_link_text)
 
 
 @router.callback_query(lambda c: c.data == CB_REFRESH_MY_REFERRALS)
@@ -157,24 +163,12 @@ async def on_refresh_my_referrals(callback: CallbackQuery, session: AsyncSession
         await callback.message.answer(secret_link_text)
 
 
-@router.callback_query(lambda c: c.data == CB_SHOW_LEADERBOARD)
-async def on_show_leaderboard(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
-    user = await _require_ready_user_cb(callback, session, bot)
+@router.message(F.text == BTN_LEADERBOARD)
+async def on_leaderboard_button(message: Message, session: AsyncSession, bot: Bot) -> None:
+    user = await _require_ready_user_msg(message, session, bot)
     if user is None:
         return
 
     active_season = await SeasonRepo(session).get_active()
     text = await SeasonService(session).get_leaderboard_text(active_season, highlight_user_id=user.id)
-    await callback.message.answer(text)
-    await callback.answer()
-
-
-@router.message(F.text.in_({_LEGACY_BTN_INVITE, _LEGACY_BTN_MY_REFERRALS}))
-async def on_legacy_menu_button(message: Message) -> None:
-    """Eski pastki klaviatura hali ba'zi foydalanuvchilar ekranida qolgan
-    bo'lishi mumkin - uni bosganda klaviaturani tozalab, yangi xabar
-    tuzilishiga yo'naltiramiz."""
-    await message.answer(
-        "Yangilanish: bu tugmalar endi xabar ostida (inline) ko'rinadi. /start ni qayta bosing.",
-        reply_markup=ReplyKeyboardRemove(),
-    )
+    await message.answer(text)

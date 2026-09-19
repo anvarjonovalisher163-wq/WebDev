@@ -1,12 +1,11 @@
 from aiogram import Bot, Router
 from aiogram.filters import CommandObject, CommandStart
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.config import settings as app_settings
 from bot.handlers.user._common import check_gate, finalize_subscription, get_gate_text, get_welcome_text
-from bot.keyboards.admin import admin_settings_reply_keyboard
-from bot.keyboards.user import DEFAULT_SHARE_TEXT, subscription_gate_keyboard, welcome_actions_keyboard
+from bot.keyboards.user import main_reply_keyboard, subscription_gate_keyboard, welcome_actions_keyboard
 from bot.repositories.admin_repo import AdminRepo
 from bot.repositories.settings_repo import SettingsRepo
 from bot.services.referral_service import ReferralService
@@ -22,18 +21,15 @@ async def cmd_start(
 ) -> None:
     tg_user = message.from_user
 
-    # Pastki (reply) klaviaturani sozlaymiz. Admin uchun doimiy "Sozlamalar"
-    # tugmasini o'rnatuvchi xabar o'chirilmaydi - Telegram mijozlari
-    # klaviaturani o'rnatgan xabar o'chirilganda uni yashirib qo'yishi mumkin,
-    # shuning uchun bu xabar ekranda qoladi. Oddiy foydalanuvchilar uchun esa
-    # eski klaviaturani tozalovchi xabar ko'rinmas tarzda o'chiriladi (maqsad
-    # "klaviatura yo'q" holati, uni o'chirish bu holatni buzmaydi).
+    # Pastki (doimiy) menyuni sozlaymiz: "Mening takliflarim" / "Reyting", admin
+    # uchun qo'shimcha "Sozlamalar" tugmasi bilan. Bu xabar o'chirilmaydi -
+    # Telegram mijozlari klaviaturani o'rnatgan xabar o'chirilganda uni
+    # yashirib qo'yishi mumkin.
     is_admin = await AdminRepo(session).get_by_tg_id(tg_user.id) is not None
-    if is_admin:
-        await message.answer("⚙️ Admin rejimi yoqilgan.", reply_markup=admin_settings_reply_keyboard())
-    else:
-        cleanup = await message.answer("⏳", reply_markup=ReplyKeyboardRemove())
-        await cleanup.delete()
+    await message.answer(
+        "📋 Asosiy menyu pastda yoqildi.",
+        reply_markup=main_reply_keyboard(app_settings.webapp_url, is_admin),
+    )
 
     subscription_service = SubscriptionService(bot)
     referral_service = ReferralService(session, subscription_service)
@@ -70,9 +66,7 @@ async def cmd_start(
     settings = await SettingsRepo(session).get()
     link = build_referral_link(bot_username, user.tg_id)
     welcome_text = get_welcome_text(settings, user.first_name, link)
-    keyboard = welcome_actions_keyboard(
-        link, settings.share_text or DEFAULT_SHARE_TEXT, app_settings.webapp_url
-    )
+    keyboard = welcome_actions_keyboard(link)
 
     if settings.welcome_media_file_id and settings.welcome_media_type == "photo":
         await message.answer_photo(settings.welcome_media_file_id, caption=welcome_text, reply_markup=keyboard)

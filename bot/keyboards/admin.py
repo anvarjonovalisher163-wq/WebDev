@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.models.admin import Admin
 from bot.models.channel import MandatoryChannel
@@ -47,15 +47,6 @@ CB_ADMIN_SEASON_END_CONFIRM = "admin:season_end_confirm"
 
 CB_ADMIN_BACK = "admin:back"
 CB_ADMIN_CANCEL = "admin:cancel"
-
-
-def admin_settings_reply_keyboard() -> ReplyKeyboardMarkup:
-    """Adminlar uchun pastki (doimiy) klaviatura - har safar /admin yozmasdan
-    admin panelga kirish imkonini beradi."""
-    return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=ADMIN_SETTINGS_BTN)]],
-        resize_keyboard=True,
-    )
 
 
 def admin_main_menu_keyboard() -> InlineKeyboardMarkup:

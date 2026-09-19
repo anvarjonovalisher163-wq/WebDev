@@ -2,14 +2,8 @@ from aiogram import Bot, Router
 from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.config import settings as app_settings
 from bot.handlers.user._common import check_gate, finalize_subscription, get_welcome_text
-from bot.keyboards.user import (
-    CB_CHECK_SUBSCRIPTION,
-    DEFAULT_SHARE_TEXT,
-    subscription_gate_keyboard,
-    welcome_actions_keyboard,
-)
+from bot.keyboards.user import CB_CHECK_SUBSCRIPTION, subscription_gate_keyboard, welcome_actions_keyboard
 from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
 from bot.services.referral_service import ReferralService
@@ -48,9 +42,7 @@ async def on_check_subscription(
     settings = await SettingsRepo(session).get()
     link = build_referral_link(bot_username, user.tg_id)
     welcome_text = get_welcome_text(settings, user.first_name, link)
-    keyboard = welcome_actions_keyboard(
-        link, settings.share_text or DEFAULT_SHARE_TEXT, app_settings.webapp_url
-    )
+    keyboard = welcome_actions_keyboard(link)
 
     if settings.welcome_media_file_id and settings.welcome_media_type == "photo":
         await callback.message.answer_photo(settings.welcome_media_file_id, caption=welcome_text, reply_markup=keyboard)
