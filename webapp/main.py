@@ -15,8 +15,11 @@ from bot.config import settings
 from bot.db.session import async_session_factory
 from bot.repositories.referral_repo import ReferralRepo
 from bot.repositories.season_repo import SeasonRepo
+from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
+from bot.services.referral_service import ReferralService
 from bot.services.season_service import SeasonService
+from bot.services.subscription_service import SubscriptionService
 
 INIT_DATA_MAX_AGE_SECONDS = 86400
 TELEGRAM_API = f"https://api.telegram.org/bot{settings.bot_token}"
@@ -171,4 +174,42 @@ async def leaderboard(
             "limit": limit,
             "entries": entries,
             "you": you,
+        }
+
+
+@app.get("/api/my-stats")
+async def my_stats(x_telegram_init_data: str = Header(default="")) -> dict:
+    """Joriy mavsumdagi shaxsiy progress: talab qilingan/tasdiqlangan/
+    kutilayotgan/qolgan sonlar, maxfiy kanal holati va reytingdagi o'rni."""
+    tg_user = _verify_init_data(x_telegram_init_data)
+    if not tg_user:
+        raise HTTPException(status_code=401, detail="Telegram orqali ochilishi kerak")
+
+    async with async_session_factory() as session:
+        user = await UserRepo(session).get_by_tg_id(tg_user["id"])
+        if user is None:
+            raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+        bot_settings = await SettingsRepo(session).get()
+        active_season = await SeasonRepo(session).get_active()
+        referral_repo = ReferralRepo(session)
+        referral_service = ReferralService(session, SubscriptionService(bot=None))
+
+        progress = await referral_service.get_progress(
+            user.id, bot_settings.required_referral_count, active_season.id
+        )
+        position = await referral_repo.season_rank_of(active_season.id, user.id)
+
+        if user.joined_private_channel:
+            channel_status = "joined"
+        elif user.secret_link_taken:
+            channel_status = "pending"
+        else:
+            channel_status = "none"
+
+        return {
+            "season": {"name": active_season.name},
+            "progress": progress,
+            "channel_status": channel_status,
+            "rank": position[0] if position else None,
         }

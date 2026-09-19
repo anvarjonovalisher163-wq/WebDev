@@ -136,6 +136,33 @@
 
   /* Twemoji: barcha qurilmalarda (iOS, Android, Windows) bir xil emoji ko'rinishi */
   img.emoji { height: 1.15em; width: 1.15em; vertical-align: -0.2em; display: inline-block; }
+
+  .tabbar {
+    display: flex; gap: 4px; margin: 14px 12px 0; padding: 4px; border-radius: 18px;
+  }
+  .tabbar button {
+    flex: 1; border: none; background: transparent; padding: 10px 8px; border-radius: 14px;
+    font-size: 13.5px; font-weight: 700; color: var(--hint); font-family: inherit;
+  }
+  .tabbar button.active { background: rgba(255,255,255,0.55); color: var(--text); box-shadow: 0 4px 14px rgba(20,50,100,0.15); }
+
+  .stats-card { margin: 16px 12px 0; border-radius: 24px; padding: 20px; }
+  .stats-card .label { font-size: 12.5px; font-weight: 700; color: var(--hint); text-transform: uppercase; letter-spacing: 0.3px; }
+  .stats-card .big-progress { display: flex; align-items: baseline; gap: 6px; margin: 6px 0 12px; }
+  .stats-card .big-progress .num { font-size: 34px; font-weight: 900; color: var(--accent); }
+  .stats-card .big-progress .of { font-size: 15px; font-weight: 700; color: var(--hint); }
+  .progress-track { width: 100%; height: 12px; border-radius: 8px; background: rgba(120,150,200,0.22); overflow: hidden; margin-bottom: 18px; }
+  .progress-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #ff9f1c, #ffcf6b); transition: width 0.4s ease; }
+  .stat-row-grid { display: flex; gap: 10px; margin-bottom: 16px; }
+  .stat-tile { flex: 1; border-radius: 16px; padding: 12px; text-align: center; background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.4); }
+  .stat-tile .n { font-size: 20px; font-weight: 900; }
+  .stat-tile .l { font-size: 11px; font-weight: 700; color: var(--hint); margin-top: 2px; }
+  .channel-chip { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.4); margin-bottom: 12px; }
+  .channel-chip .icon { font-size: 20px; }
+  .channel-chip .text { font-weight: 700; font-size: 13.5px; }
+  .rank-chip { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.4); }
+  .rank-chip .l { font-size: 13px; font-weight: 700; color: var(--hint); }
+  .rank-chip .v { font-size: 16px; font-weight: 900; color: var(--accent); }
 </style>
 </head>
 <body>
@@ -155,8 +182,19 @@
     <p id="season-label">Yuklanmoqda...</p>
   </div>
 
-  <div id="podium" class="podium"></div>
-  <div id="list" class="list glass"><div class="loading">Yuklanmoqda...</div></div>
+  <div class="tabbar glass">
+    <button id="tab-btn-reyting" class="active" onclick="showTab('reyting')">🏆 Reyting</button>
+    <button id="tab-btn-mine" onclick="showTab('mine')">📊 Mening natijam</button>
+  </div>
+
+  <div id="panel-reyting">
+    <div id="podium" class="podium"></div>
+    <div id="list" class="list glass"><div class="loading">Yuklanmoqda...</div></div>
+  </div>
+
+  <div id="panel-mine" style="display:none;">
+    <div id="stats-card" class="stats-card glass"><div class="loading">Yuklanmoqda...</div></div>
+  </div>
 
   <div id="you-bar" class="you-bar glass"></div>
 
@@ -241,9 +279,13 @@
       });
     }
 
+    let lastYou = null;
+    let currentTab = "reyting";
+
     function renderYouBar(you) {
+      lastYou = you;
       const bar = document.getElementById("you-bar");
-      if (!you) { bar.style.display = "none"; return; }
+      if (!you || currentTab !== "reyting") { bar.style.display = "none"; return; }
       bar.style.display = "flex";
       bar.innerHTML = `
         <div class="rank">${you.rank}</div>
@@ -289,10 +331,75 @@
     }
 
     window.addEventListener("scroll", () => {
+      if (currentTab !== "reyting") return;
       const scrollBottom = window.innerHeight + window.scrollY;
       const threshold = document.body.offsetHeight - 500;
       if (scrollBottom >= threshold) loadMore().catch(() => {});
     });
+
+    const CHANNEL_STATUS = {
+      joined: { icon: "✅", text: "Siz allaqachon yopiq kanaldasiz" },
+      pending: { icon: "⏳", text: "Havola berilgan, kanalga qo'shilishni kutmoqda" },
+      none: { icon: "❌", text: "Maxfiy kanal hali olinmagan" },
+    };
+
+    let myStatsLoaded = false;
+
+    async function loadMyStats() {
+      const cardEl = document.getElementById("stats-card");
+      const headers = {};
+      if (tg && tg.initData) headers["X-Telegram-Init-Data"] = tg.initData;
+      if (!tg || !tg.initData) {
+        cardEl.innerHTML = '<div class="empty">Bu bo\'lim faqat Telegram ichida ochilganda ishlaydi.</div>';
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/my-stats", { headers });
+        if (!res.ok) throw new Error("bad status");
+        const data = await res.json();
+        const p = data.progress;
+        const pct = p.required > 0 ? Math.min(100, Math.round((p.approved / p.required) * 100)) : 0;
+        const channel = CHANNEL_STATUS[data.channel_status] || CHANNEL_STATUS.none;
+
+        cardEl.innerHTML = `
+          <div class="label">${data.season.name} · joriy natijangiz</div>
+          <div class="big-progress"><span class="num">${p.approved}</span><span class="of">/ ${p.required} ta talab qilingan taklif</span></div>
+          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="stat-row-grid">
+            <div class="stat-tile"><div class="n" style="color:#2e9e4f">${p.approved}</div><div class="l">✅ Tasdiqlangan</div></div>
+            <div class="stat-tile"><div class="n" style="color:#c98a10">${p.pending}</div><div class="l">⏳ Kutilmoqda</div></div>
+            <div class="stat-tile"><div class="n" style="color:#c94040">${p.remaining}</div><div class="l">📝 Qolgan</div></div>
+          </div>
+          <div class="channel-chip"><div class="icon">${channel.icon}</div><div class="text">${channel.text}</div></div>
+          ${data.rank ? `<div class="rank-chip"><div class="l">Joriy mavsum reytingida o'rningiz</div><div class="v">${data.rank}-o'rin</div></div>` : ""}
+        `;
+        if (window.twemoji) window.twemoji.parse(cardEl);
+      } catch (e) {
+        cardEl.innerHTML = '<div class="empty">Ma\'lumotni yuklab bo\'lmadi. Keyinroq urinib ko\'ring.</div>';
+      }
+    }
+
+    function showTab(tab) {
+      currentTab = tab;
+      document.getElementById("panel-reyting").style.display = tab === "reyting" ? "block" : "none";
+      document.getElementById("panel-mine").style.display = tab === "mine" ? "block" : "none";
+      document.getElementById("tab-btn-reyting").classList.toggle("active", tab === "reyting");
+      document.getElementById("tab-btn-mine").classList.toggle("active", tab === "mine");
+
+      const bar = document.getElementById("you-bar");
+      if (tab !== "reyting") bar.style.display = "none";
+      else if (lastYou) renderYouBar(lastYou);
+
+      if (tab === "mine" && !myStatsLoaded) {
+        myStatsLoaded = true;
+        loadMyStats();
+      }
+    }
+
+    // Mening takliflarim tugmasi Mini App'ni to'g'ridan-to'g'ri shu tabga ochishi uchun (?tab=mine)
+    const initialTab = new URLSearchParams(location.search).get("tab") === "mine" ? "mine" : "reyting";
+    showTab(initialTab);
 
     loadMore().catch(() => {
       document.getElementById("list").innerHTML = '<div class="empty">Ma\'lumotni yuklab bo\'lmadi. Keyinroq urinib ko\'ring.</div>';
