@@ -33,9 +33,12 @@ class ReferralService:
     async def try_confirm(
         self, referral: Referral, referred_user: User, channels: list[MandatoryChannel]
     ) -> bool:
-        """Referred foydalanuvchi barcha majburiy kanallarga obuna bo'lsa, referralni tasdiqlaydi."""
+        """Referred foydalanuvchi barcha majburiy kanallarga obuna bo'lsa, referralni
+        tasdiqlaydi. Faqat shu chaqiruvda PENDING'dan APPROVED'ga HOZIR o'tgan
+        bo'lsa True qaytaradi - allaqachon tasdiqlangan referral uchun har safar
+        /start bosilganda qayta xabar yuborilmasligi shart shunga bog'liq."""
         if referral.status != ReferralStatus.PENDING:
-            return referral.status == ReferralStatus.APPROVED
+            return False
 
         not_subscribed = await self.subscription_service.get_not_subscribed(
             referred_user.tg_id, channels
