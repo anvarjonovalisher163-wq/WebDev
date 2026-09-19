@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qsl
 
-from fastapi import FastAPI, Header, Query
+import httpx
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -18,8 +19,12 @@ from bot.repositories.user_repo import UserRepo
 from bot.services.season_service import SeasonService
 
 INIT_DATA_MAX_AGE_SECONDS = 86400
+TELEGRAM_API = f"https://api.telegram.org/bot{settings.bot_token}"
+TELEGRAM_FILE_URL = f"https://api.telegram.org/file/bot{settings.bot_token}"
 
 STATIC_DIR = Path(__file__).parent / "static"
+AVATAR_CACHE_DIR = STATIC_DIR / "avatars"
+AVATAR_CACHE_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="Reyting Mini App")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -58,6 +63,55 @@ def _verify_init_data(init_data: str) -> Optional[dict]:
         return None
 
 
+async def _fetch_and_cache_avatar(tg_id: int) -> Optional[Path]:
+    """Telegram profil rasmini yuklab, diskka keshlaydi. Rasm yo'q yoki
+    olishning iloji bo'lmasa - buni ham keshlab, qayta-qayta so'rov
+    yubormaslik uchun bo'sh marker fayl yaratadi."""
+    jpg_path = AVATAR_CACHE_DIR / f"{tg_id}.jpg"
+    none_marker = AVATAR_CACHE_DIR / f"{tg_id}.none"
+    if jpg_path.exists():
+        return jpg_path
+    if none_marker.exists():
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                f"{TELEGRAM_API}/getUserProfilePhotos", params={"user_id": tg_id, "limit": 1}
+            )
+            data = resp.json()
+            photos = data.get("result", {}).get("photos") if data.get("ok") else None
+            if not photos:
+                none_marker.touch()
+                return None
+
+            file_id = photos[0][0]["file_id"]  # eng kichik o'lcham - avatar uchun yetarli
+            file_resp = await client.get(f"{TELEGRAM_API}/getFile", params={"file_id": file_id})
+            file_data = file_resp.json()
+            if not file_data.get("ok"):
+                none_marker.touch()
+                return None
+
+            file_path = file_data["result"]["file_path"]
+            img_resp = await client.get(f"{TELEGRAM_FILE_URL}/{file_path}")
+            if img_resp.status_code != 200:
+                none_marker.touch()
+                return None
+
+            jpg_path.write_bytes(img_resp.content)
+            return jpg_path
+    except httpx.HTTPError:
+        return None
+
+
+@app.get("/api/avatar/{tg_id}")
+async def avatar(tg_id: int) -> FileResponse:
+    path = await _fetch_and_cache_avatar(tg_id)
+    if path is None:
+        raise HTTPException(status_code=404)
+    return FileResponse(path, headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/")
 async def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
@@ -91,6 +145,7 @@ async def leaderboard(
                 "rank": row["rank"],
                 "name": row["name"],
                 "count": row["count"],
+                "tg_id": row["tg_id"],
                 "is_you": bool(tg_user) and row["tg_id"] == tg_user.get("id"),
             }
             for row in rows
@@ -102,7 +157,12 @@ async def leaderboard(
             if user is not None:
                 position = await referral_repo.season_rank_of(active_season.id, user.id)
                 if position:
-                    you = {"rank": position[0], "count": position[1], "name": user.first_name}
+                    you = {
+                        "rank": position[0],
+                        "count": position[1],
+                        "name": user.first_name,
+                        "tg_id": user.tg_id,
+                    }
 
         return {
             "season": {"number": active_season.number, "name": active_season.name},
