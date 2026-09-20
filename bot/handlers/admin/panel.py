@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from bot.config import settings as app_settings
 from bot.keyboards.admin import (
     ADMIN_SETTINGS_BTN,
     CB_ADMIN_BACK,
@@ -19,18 +20,22 @@ ADMIN_MENU_TEXT = "Admin panel:"
 @router.message(F.text == ADMIN_SETTINGS_BTN)
 async def cmd_admin(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer(ADMIN_MENU_TEXT, reply_markup=admin_main_menu_keyboard())
+    await message.answer(ADMIN_MENU_TEXT, reply_markup=admin_main_menu_keyboard(app_settings.webapp_url))
 
 
 @router.callback_query(lambda c: c.data == CB_ADMIN_BACK)
 async def on_back(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
-    await callback.message.edit_text(ADMIN_MENU_TEXT, reply_markup=admin_main_menu_keyboard())
+    await callback.message.edit_text(
+        ADMIN_MENU_TEXT, reply_markup=admin_main_menu_keyboard(app_settings.webapp_url)
+    )
     await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == CB_ADMIN_CANCEL)
 async def on_cancel(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
-    await callback.message.answer(ADMIN_MENU_TEXT, reply_markup=admin_main_menu_keyboard())
+    await callback.message.answer(
+        ADMIN_MENU_TEXT, reply_markup=admin_main_menu_keyboard(app_settings.webapp_url)
+    )
     await callback.answer("Bekor qilindi")

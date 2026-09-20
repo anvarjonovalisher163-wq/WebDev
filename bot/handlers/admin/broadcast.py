@@ -10,6 +10,7 @@ from bot.keyboards.admin import (
     broadcast_confirm_keyboard,
     cancel_keyboard,
 )
+from bot.config import settings as app_settings
 from bot.services.audit import log_admin_action
 from bot.services.broadcast_service import BroadcastService
 from bot.states.admin_states import BroadcastStates
@@ -63,5 +64,5 @@ async def on_broadcast_confirm(
         f"Muvaffaqiyatli yuborildi: {report.success}\n"
         f"Botni bloklaganlar: {report.blocked}\n"
         f"Xatolik yuz berganlar: {report.failed}",
-        reply_markup=admin_main_menu_keyboard(),
+        reply_markup=admin_main_menu_keyboard(app_settings.webapp_url),
     )

@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 from bot.models.admin import Admin
 from bot.models.channel import MandatoryChannel
@@ -45,29 +45,44 @@ CB_ADMIN_SEASONS = "admin:seasons"
 CB_ADMIN_SEASON_END_PROMPT = "admin:season_end_prompt"
 CB_ADMIN_SEASON_END_CONFIRM = "admin:season_end_confirm"
 
+CB_ADMIN_CERTIFICATES = "admin:certificates"
+CB_ADMIN_CERT_ISSUE_PROMPT = "admin:cert_issue_prompt"
+CB_ADMIN_CERT_ISSUE_CONFIRM = "admin:cert_issue_confirm"
+
 CB_ADMIN_BACK = "admin:back"
 CB_ADMIN_CANCEL = "admin:cancel"
 
 
-def admin_main_menu_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📝 Welcome xabari", callback_data=CB_ADMIN_WELCOME)],
-            [InlineKeyboardButton(text="📢 Majburiy kanallar", callback_data=CB_ADMIN_CHANNELS)],
+def admin_main_menu_keyboard(webapp_url: str = "") -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(text="📝 Welcome xabari", callback_data=CB_ADMIN_WELCOME)],
+        [InlineKeyboardButton(text="📢 Majburiy kanallar", callback_data=CB_ADMIN_CHANNELS)],
+        [
+            InlineKeyboardButton(text="🖼 Referral rasmi", callback_data=CB_ADMIN_REFERRAL_IMAGE),
+            InlineKeyboardButton(text="✍️ Referral matni", callback_data=CB_ADMIN_REFERRAL_TEXT),
+        ],
+        [InlineKeyboardButton(text="📤 Ulashish matni", callback_data=CB_ADMIN_SHARE_TEXT)],
+        [InlineKeyboardButton(text="🔢 Talablar soni", callback_data=CB_ADMIN_REQUIREMENTS)],
+        [InlineKeyboardButton(text="🔐 Maxfiy kanal sozlamalari", callback_data=CB_ADMIN_SECRET_CHANNEL)],
+        [InlineKeyboardButton(text="🏆 Mavsumlar", callback_data=CB_ADMIN_SEASONS)],
+        [InlineKeyboardButton(text="🎓 Sertifikatlar", callback_data=CB_ADMIN_CERTIFICATES)],
+    ]
+    if webapp_url:
+        rows.append(
             [
-                InlineKeyboardButton(text="🖼 Referral rasmi", callback_data=CB_ADMIN_REFERRAL_IMAGE),
-                InlineKeyboardButton(text="✍️ Referral matni", callback_data=CB_ADMIN_REFERRAL_TEXT),
-            ],
-            [InlineKeyboardButton(text="📤 Ulashish matni", callback_data=CB_ADMIN_SHARE_TEXT)],
-            [InlineKeyboardButton(text="🔢 Talablar soni", callback_data=CB_ADMIN_REQUIREMENTS)],
-            [InlineKeyboardButton(text="🔐 Maxfiy kanal sozlamalari", callback_data=CB_ADMIN_SECRET_CHANNEL)],
-            [InlineKeyboardButton(text="🏆 Mavsumlar", callback_data=CB_ADMIN_SEASONS)],
-            [InlineKeyboardButton(text="📤 E'lon yuborish", callback_data=CB_ADMIN_BROADCAST)],
-            [InlineKeyboardButton(text="📊 Statistika", callback_data=CB_ADMIN_STATS)],
-            [InlineKeyboardButton(text="🔍 Foydalanuvchini qidirish", callback_data=CB_ADMIN_SEARCH)],
-            [InlineKeyboardButton(text="👥 Adminlar", callback_data=CB_ADMIN_ADMINS)],
-        ]
-    )
+                InlineKeyboardButton(
+                    text="🖥 Sertifikat dizayneri (Web App)",
+                    web_app=WebAppInfo(url=f"{webapp_url}/admin"),
+                )
+            ]
+        )
+    rows += [
+        [InlineKeyboardButton(text="📤 E'lon yuborish", callback_data=CB_ADMIN_BROADCAST)],
+        [InlineKeyboardButton(text="📊 Statistika", callback_data=CB_ADMIN_STATS)],
+        [InlineKeyboardButton(text="🔍 Foydalanuvchini qidirish", callback_data=CB_ADMIN_SEARCH)],
+        [InlineKeyboardButton(text="👥 Adminlar", callback_data=CB_ADMIN_ADMINS)],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def back_to_admin_menu_keyboard() -> InlineKeyboardMarkup:
@@ -197,6 +212,30 @@ def season_end_confirm_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="✅ Ha, yakunlash", callback_data=CB_ADMIN_SEASON_END_CONFIRM)],
             [InlineKeyboardButton(text="❌ Bekor qilish", callback_data=CB_ADMIN_SEASONS)],
+        ]
+    )
+
+
+def certificates_menu_keyboard(ready_count: int) -> InlineKeyboardMarkup:
+    rows = []
+    if ready_count > 0:
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"🎓 Sertifikatlarni berish ({ready_count})",
+                    callback_data=CB_ADMIN_CERT_ISSUE_PROMPT,
+                )
+            ]
+        )
+    rows.append([InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def certificates_issue_confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Ha, yuborish", callback_data=CB_ADMIN_CERT_ISSUE_CONFIRM)],
+            [InlineKeyboardButton(text="❌ Bekor qilish", callback_data=CB_ADMIN_CERTIFICATES)],
         ]
     )
 

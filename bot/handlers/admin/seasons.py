@@ -13,6 +13,7 @@ from bot.keyboards.admin import (
     season_end_confirm_keyboard,
     seasons_menu_keyboard,
 )
+from bot.config import settings as app_settings
 from bot.repositories.season_repo import SeasonRepo
 from bot.services.audit import log_admin_action
 from bot.services.season_service import CELEBRATION_EMOJI, SeasonService
@@ -104,5 +105,5 @@ async def on_season_new_name_received(
         f"{winner_line}\n\n"
         "⚠️ Yangi mavsum uchun yopiq kanal hali sozlanmagan - \"🔐 Maxfiy kanal "
         "sozlamalari\" bo'limidan yangi (yoki eski) kanalni qayta belgilang.",
-        reply_markup=admin_main_menu_keyboard(),
+        reply_markup=admin_main_menu_keyboard(app_settings.webapp_url),
     )

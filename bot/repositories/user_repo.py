@@ -80,3 +80,30 @@ class UserRepo:
             select(func.count()).select_from(User).where(User.referrer_id == referrer_id)
         )
         return result.scalar_one()
+
+    async def count_joined_private_channel(self) -> int:
+        result = await self.session.execute(
+            select(func.count()).select_from(User).where(User.joined_private_channel.is_(True))
+        )
+        return result.scalar_one()
+
+    async def count_cert_form_filled(self) -> int:
+        result = await self.session.execute(
+            select(func.count()).select_from(User).where(User.cert_full_name.is_not(None))
+        )
+        return result.scalar_one()
+
+    async def count_cert_issued(self) -> int:
+        result = await self.session.execute(
+            select(func.count()).select_from(User).where(User.cert_issued_at.is_not(None))
+        )
+        return result.scalar_one()
+
+    async def list_ready_for_certificate(self) -> list[User]:
+        result = await self.session.execute(
+            select(User).where(
+                User.cert_full_name.is_not(None),
+                User.cert_issued_at.is_(None),
+            )
+        )
+        return list(result.scalars().all())

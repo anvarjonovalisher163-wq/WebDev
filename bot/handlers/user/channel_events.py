@@ -2,13 +2,18 @@ from datetime import datetime, timezone
 
 from aiogram import Bot, Router
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.base import StorageKey
 from aiogram.types import ChatMemberUpdated
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.invite_link import InviteLinkStatus
 from bot.repositories.invite_repo import InviteRepo
+from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
+from bot.services.certificate_service import DEFAULT_ACCEPTANCE_TEXT
 from bot.services.invite_service import InviteService
+from bot.states.user_states import CertificateStates
 
 router = Router(name="user_channel_events")
 
@@ -17,7 +22,9 @@ _LEFT_STATUSES = {"left", "kicked"}
 
 
 @router.chat_member()
-async def on_private_channel_join(event: ChatMemberUpdated, session: AsyncSession, bot: Bot) -> None:
+async def on_private_channel_join(
+    event: ChatMemberUpdated, session: AsyncSession, bot: Bot, state: FSMContext
+) -> None:
     if event.new_chat_member.status not in _JOINED_STATUSES:
         return
     if event.old_chat_member.status not in _LEFT_STATUSES:
@@ -43,10 +50,25 @@ async def on_private_channel_join(event: ChatMemberUpdated, session: AsyncSessio
     await invite_service.mark_used_and_revoke(link)
     await session.commit()
 
+    settings = await SettingsRepo(session).get()
+    acceptance_text = (settings.acceptance_text or DEFAULT_ACCEPTANCE_TEXT).replace(
+        "{ism}", user.first_name
+    )
+
     try:
+        await bot.send_message(user.tg_id, acceptance_text)
         await bot.send_message(
             user.tg_id,
-            "Tabriklaymiz! Siz muvaffaqiyatli ravishda yopiq kanalga qo'shildingiz.",
+            "Sertifikatingizni rasmiylashtirish uchun to'liq ism va familiyangizni yuboring "
+            "(masalan: Anvar Anvarov):",
         )
     except (TelegramForbiddenError, TelegramBadRequest):
-        pass
+        return
+
+    # Foydalanuvchining bot bilan SHAXSIY suhbatidagi FSM holatini o'rnatamiz -
+    # bu hodisa (chat_member) kanal chatiga tegishli bo'lgani uchun standart
+    # `state` konteksti noto'g'ri chatga qarab turadi.
+    private_key = StorageKey(bot_id=bot.id, chat_id=user.tg_id, user_id=user.tg_id)
+    await FSMContext(storage=state.storage, key=private_key).set_state(
+        CertificateStates.waiting_full_name
+    )

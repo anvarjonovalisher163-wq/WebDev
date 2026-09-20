@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Sertifikat sozlamalari</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #f4f7fb;
+    --card-bg: #ffffff;
+    --text: #101a2e;
+    --hint: rgba(20,30,55,0.6);
+    --navy: #071944;
+    --accent: #2a78c8;
+    --border: #e2e7f0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0c1220;
+      --card-bg: #151c30;
+      --text: #f2f6ff;
+      --hint: rgba(220,230,250,0.65);
+      --border: #26304a;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  }
+  body { padding: 16px 16px 40px; }
+  h1 { font-size: 19px; margin: 4px 0 16px; }
+  .hint { color: var(--hint); font-size: 13px; margin: -10px 0 16px; }
+
+  .preview-wrap {
+    width: 100%; border-radius: 14px; overflow: hidden; border: 1px solid var(--border);
+    background: #fff; margin-bottom: 20px; position: relative; min-height: 160px;
+  }
+  .preview-wrap img { width: 100%; display: block; }
+  .preview-loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--hint); background: rgba(255,255,255,0.6);
+  }
+  @media (prefers-color-scheme: dark) {
+    .preview-loading { background: rgba(10,15,25,0.5); }
+  }
+
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; margin-bottom: 14px;
+  }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .field-hint { font-size: 12px; color: var(--hint); margin: -3px 0 8px; }
+  input[type=text], textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    font-size: 14px; background: transparent; color: var(--text); font-family: inherit;
+    resize: vertical;
+  }
+  textarea { min-height: 70px; }
+  input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+  .row { margin-bottom: 14px; }
+  .row:last-child { margin-bottom: 0; }
+
+  button.save {
+    width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--navy);
+    color: #fff; font-size: 15px; font-weight: 600; margin-top: 4px; cursor: pointer;
+  }
+  button.save:active { opacity: 0.85; }
+  button.save:disabled { opacity: 0.5; }
+
+  .status { text-align: center; font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .status.ok { color: #1a9e5c; }
+  .status.err { color: #d0473b; }
+
+  .blocked { text-align: center; padding: 60px 20px; color: var(--hint); }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <h1>🎓 Sertifikat sozlamalari</h1>
+  <p class="hint">O'zgartirsangiz, pastdagi ko'rinish jonli yangilanadi. Tayyor bo'lgach "Saqlash"ni bosing.</p>
+
+  <div class="preview-wrap">
+    <img id="preview-img" alt="Sertifikat ko'rinishi" />
+    <div class="preview-loading" id="preview-loading">Yuklanmoqda...</div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <label>Sarlavha ostidagi matn (subtitle)</label>
+      <div class="field-hint">Masalan: ISHTIROK ETGANLIK SERTIFIKATI</div>
+      <input type="text" id="f-subtitle" maxlength="255" />
+    </div>
+    <div class="row">
+      <label>Asosiy matn</label>
+      <div class="field-hint">{mavsum} yozsangiz, joriy mavsum nomi bilan almashtiriladi.</div>
+      <textarea id="f-body"></textarea>
+    </div>
+    <div class="row">
+      <label>Imzo (ism)</label>
+      <div class="field-hint">Pastdagi "Loyiha muallifi" yozuvi ustidagi ism.</div>
+      <input type="text" id="f-signature" maxlength="255" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <label>Qabul xabari matni</label>
+      <div class="field-hint">
+        Foydalanuvchi yopiq kanalga qo'shilgach yuboriladi. {ism} - foydalanuvchi ismi bilan almashtiriladi.
+      </div>
+      <textarea id="f-acceptance"></textarea>
+    </div>
+  </div>
+
+  <button class="save" id="btn-save">Saqlash</button>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+const initData = tg?.initData || "";
+
+const els = {
+  subtitle: document.getElementById('f-subtitle'),
+  body: document.getElementById('f-body'),
+  signature: document.getElementById('f-signature'),
+  acceptance: document.getElementById('f-acceptance'),
+  previewImg: document.getElementById('preview-img'),
+  previewLoading: document.getElementById('preview-loading'),
+  saveBtn: document.getElementById('btn-save'),
+  status: document.getElementById('status'),
+};
+
+let defaults = {};
+let debounceTimer = null;
+
+function setStatus(text, cls) {
+  els.status.textContent = text;
+  els.status.className = 'status' + (cls ? ' ' + cls : '');
+}
+
+function updatePreview() {
+  els.previewLoading.style.display = 'flex';
+  const params = new URLSearchParams({
+    init_data: initData,
+    subtitle: els.subtitle.value,
+    body_text: els.body.value,
+    signature_name: els.signature.value,
+  });
+  const img = new Image();
+  img.onload = () => {
+    els.previewImg.src = img.src;
+    els.previewLoading.style.display = 'none';
+  };
+  img.onerror = () => { els.previewLoading.style.display = 'none'; };
+  img.src = '/api/admin/certificate/preview?' + params.toString();
+}
+
+function scheduleUpdatePreview() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(updatePreview, 400);
+}
+
+async function load() {
+  try {
+    const res = await fetch('/api/admin/certificate', {
+      headers: { 'X-Telegram-Init-Data': initData },
+    });
+    if (res.status === 401 || res.status === 403) {
+      document.getElementById('app').innerHTML =
+        '<div class="blocked">⛔ Ushbu sahifa faqat adminlar uchun.</div>';
+      return;
+    }
+    const data = await res.json();
+    defaults = data.defaults || {};
+    els.subtitle.value = data.certificate_subtitle || '';
+    els.body.value = data.certificate_body_text || '';
+    els.signature.value = data.certificate_signature_name || '';
+    els.acceptance.value = data.acceptance_text || '';
+    els.subtitle.placeholder = defaults.certificate_subtitle || '';
+    els.body.placeholder = defaults.certificate_body_text || '';
+    els.signature.placeholder = defaults.certificate_signature_name || '';
+    els.acceptance.placeholder = defaults.acceptance_text || '';
+    updatePreview();
+  } catch (e) {
+    setStatus('Yuklashda xatolik yuz berdi', 'err');
+  }
+}
+
+async function save() {
+  els.saveBtn.disabled = true;
+  setStatus('Saqlanmoqda...');
+  try {
+    const res = await fetch('/api/admin/certificate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Telegram-Init-Data': initData,
+      },
+      body: JSON.stringify({
+        certificate_subtitle: els.subtitle.value,
+        certificate_body_text: els.body.value,
+        certificate_signature_name: els.signature.value,
+        acceptance_text: els.acceptance.value,
+      }),
+    });
+    if (!res.ok) throw new Error('save failed');
+    setStatus('✅ Saqlandi', 'ok');
+  } catch (e) {
+    setStatus('❌ Saqlashda xatolik', 'err');
+  } finally {
+    els.saveBtn.disabled = false;
+  }
+}
+
+[els.subtitle, els.body, els.signature].forEach((el) => {
+  el.addEventListener('input', scheduleUpdatePreview);
+});
+els.saveBtn.addEventListener('click', save);
+
+load();
+</script>
+
+</body>
+</html>

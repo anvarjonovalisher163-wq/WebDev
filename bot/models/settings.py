@@ -30,3 +30,8 @@ class BotSettings(Base):
 
     reissue_allowed: Mapped[bool] = mapped_column(Boolean, default=True)
     max_reissue_attempts: Mapped[int] = mapped_column(Integer, default=3)
+
+    acceptance_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    certificate_subtitle: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    certificate_body_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    certificate_signature_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

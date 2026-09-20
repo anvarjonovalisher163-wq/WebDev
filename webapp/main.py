@@ -1,22 +1,32 @@
 import hashlib
 import hmac
+import io
 import json
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qsl
 
 import httpx
-from fastapi import FastAPI, Header, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi import Body, FastAPI, Header, HTTPException, Query
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from bot.config import settings
 from bot.db.session import async_session_factory
+from bot.repositories.admin_repo import AdminRepo
 from bot.repositories.referral_repo import ReferralRepo
 from bot.repositories.season_repo import SeasonRepo
 from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
+from bot.services.certificate_service import (
+    DEFAULT_ACCEPTANCE_TEXT,
+    DEFAULT_CERTIFICATE_BODY_TEXT,
+    DEFAULT_CERTIFICATE_SIGNATURE_NAME,
+    DEFAULT_CERTIFICATE_SUBTITLE,
+    render_certificate_png,
+)
 from bot.services.referral_service import ReferralService
 from bot.services.season_service import SeasonService
 from bot.services.subscription_service import SubscriptionService
@@ -118,6 +128,89 @@ async def avatar(tg_id: int) -> FileResponse:
 @app.get("/")
 async def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/admin")
+async def admin_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "admin.html")
+
+
+async def _require_admin(init_data: str, session) -> dict:
+    tg_user = _verify_init_data(init_data)
+    if not tg_user:
+        raise HTTPException(status_code=401, detail="Telegram orqali ochilishi kerak")
+    admin = await AdminRepo(session).get_by_tg_id(tg_user["id"])
+    if admin is None:
+        raise HTTPException(status_code=403, detail="Sizda admin huquqi yo'q")
+    return tg_user
+
+
+@app.get("/api/admin/certificate")
+async def get_certificate_settings(x_telegram_init_data: str = Header(default="")) -> dict:
+    async with async_session_factory() as session:
+        await _require_admin(x_telegram_init_data, session)
+        bot_settings = await SettingsRepo(session).get()
+        season = await SeasonRepo(session).get_active()
+
+        return {
+            "acceptance_text": bot_settings.acceptance_text or "",
+            "certificate_subtitle": bot_settings.certificate_subtitle or "",
+            "certificate_body_text": bot_settings.certificate_body_text or "",
+            "certificate_signature_name": bot_settings.certificate_signature_name or "",
+            "defaults": {
+                "acceptance_text": DEFAULT_ACCEPTANCE_TEXT,
+                "certificate_subtitle": DEFAULT_CERTIFICATE_SUBTITLE,
+                "certificate_body_text": DEFAULT_CERTIFICATE_BODY_TEXT,
+                "certificate_signature_name": DEFAULT_CERTIFICATE_SIGNATURE_NAME,
+            },
+            "season_name": season.name if season else "",
+        }
+
+
+@app.post("/api/admin/certificate")
+async def save_certificate_settings(
+    payload: dict = Body(...), x_telegram_init_data: str = Header(default="")
+) -> dict:
+    async with async_session_factory() as session:
+        await _require_admin(x_telegram_init_data, session)
+        bot_settings = await SettingsRepo(session).get()
+
+        bot_settings.acceptance_text = (payload.get("acceptance_text") or "").strip() or None
+        bot_settings.certificate_subtitle = (payload.get("certificate_subtitle") or "").strip() or None
+        bot_settings.certificate_body_text = (payload.get("certificate_body_text") or "").strip() or None
+        bot_settings.certificate_signature_name = (
+            payload.get("certificate_signature_name") or ""
+        ).strip() or None
+
+        await session.commit()
+        return {"ok": True}
+
+
+@app.get("/api/admin/certificate/preview")
+async def certificate_preview(
+    init_data: str = Query(default=""),
+    full_name: str = Query(default="Anvar Anvarov"),
+    subtitle: str = Query(default=""),
+    body_text: str = Query(default=""),
+    signature_name: str = Query(default=""),
+) -> Response:
+    async with async_session_factory() as session:
+        await _require_admin(init_data, session)
+        season = await SeasonRepo(session).get_active()
+
+    season_name = season.name if season else ""
+    resolved_subtitle = subtitle.strip() or DEFAULT_CERTIFICATE_SUBTITLE
+    resolved_body = (body_text.strip() or DEFAULT_CERTIFICATE_BODY_TEXT).replace("{mavsum}", season_name)
+    resolved_signature = signature_name.strip() or DEFAULT_CERTIFICATE_SIGNATURE_NAME
+
+    png = render_certificate_png(
+        full_name.strip() or "Anvar Anvarov",
+        resolved_subtitle,
+        resolved_body,
+        resolved_signature,
+        datetime.now(timezone.utc).date(),
+    )
+    return Response(content=png, media_type="image/png")
 
 
 PAGE_SIZE = 50

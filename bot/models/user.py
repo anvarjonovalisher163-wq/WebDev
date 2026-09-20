@@ -43,4 +43,8 @@ class User(Base):
 
     reply_menu_shown: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    cert_full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    cert_requested_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    cert_issued_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
     referrer: Mapped[Optional["User"]] = relationship(remote_side=[id])
