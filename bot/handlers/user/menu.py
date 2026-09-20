@@ -183,14 +183,7 @@ async def on_leaderboard_button(message: Message, session: AsyncSession, bot: Bo
 
 def _marra_status_text(is_participant: bool) -> str:
     status = "✅ Siz marrada ishtirok etyapsiz." if is_participant else "Siz hali marraga qo'shilmagansiz."
-    return (
-        "📖 Mutolaa \"Marra\" - kunlik kitob o'qish challenge'i.\n\n"
-        f"{status}\n\n"
-        "Diqqat: bot sizning haqiqiy o'qish holatingizni (necha daqiqa "
-        "o'qiganingiz, marradan chetlatilgan-chetlatilmaganingizni) Mutolaa "
-        "ilovasidan avtomatik bila olmaydi - buni faqat Mutolaa'ning o'zida "
-        "kuzatib boring. Bot sizga faqat kunlik eslatma yuboradi."
-    )
+    return f"📖 Mutolaa \"Marra\" - kunlik kitob o'qish challenge'i.\n\n{status}"
 
 
 @router.message(Command("marra"))
@@ -202,6 +195,13 @@ async def on_marra_button(message: Message, session: AsyncSession, bot: Bot) -> 
 
     settings = await SettingsRepo(session).get()
     if not settings.marra_url:
+        return
+
+    if not user.joined_private_channel:
+        await message.answer(
+            "📖 Marra funksiyasidan foydalanish uchun avval yopiq kanalga qo'shilishingiz kerak. "
+            "Buning uchun kerakli miqdorda do'stlaringizni taklif qiling."
+        )
         return
 
     await message.answer(
@@ -218,7 +218,7 @@ async def on_marra_join(callback: CallbackQuery, session: AsyncSession, bot: Bot
         return
 
     settings = await SettingsRepo(session).get()
-    if not settings.marra_url:
+    if not settings.marra_url or not user.joined_private_channel:
         await callback.answer()
         return
 

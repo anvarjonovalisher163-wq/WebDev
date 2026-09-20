@@ -7,7 +7,10 @@ from aiogram.fsm.storage.base import StorageKey
 from aiogram.types import ChatMemberUpdated
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot.config import settings as app_settings
+from bot.keyboards.user import main_reply_keyboard
 from bot.models.invite_link import InviteLinkStatus
+from bot.repositories.admin_repo import AdminRepo
 from bot.repositories.invite_repo import InviteRepo
 from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
@@ -62,6 +65,13 @@ async def on_private_channel_join(
             "Sertifikatingizni rasmiylashtirish uchun to'liq ism va familiyangizni yuboring "
             "(masalan: Anvar Anvarov):",
         )
+        if settings.marra_url:
+            is_admin = await AdminRepo(session).get_by_tg_id(user.tg_id) is not None
+            keyboard = main_reply_keyboard(app_settings.webapp_url, is_admin, marra_enabled=True)
+            if keyboard is not None:
+                await bot.send_message(
+                    user.tg_id, "📖 Sizga yangi imkoniyat ochildi: Marra!", reply_markup=keyboard
+                )
     except (TelegramForbiddenError, TelegramBadRequest):
         return
 

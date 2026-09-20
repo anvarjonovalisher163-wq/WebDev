@@ -112,6 +112,7 @@ class UserRepo:
         result = await self.session.execute(
             select(User).where(
                 User.is_marra_participant.is_(True),
+                User.joined_private_channel.is_(True),
                 User.is_blocked.is_(False),
             )
         )

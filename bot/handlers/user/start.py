@@ -47,7 +47,9 @@ async def cmd_start(
     if not user.reply_menu_shown:
         is_admin = await AdminRepo(session).get_by_tg_id(tg_user.id) is not None
         keyboard = main_reply_keyboard(
-            app_settings.webapp_url, is_admin, marra_enabled=bool(settings.marra_url)
+            app_settings.webapp_url,
+            is_admin,
+            marra_enabled=bool(settings.marra_url) and user.joined_private_channel,
         )
         if keyboard is not None:
             await message.answer("📋 Asosiy menyu pastda yoqildi.", reply_markup=keyboard)
