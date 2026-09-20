@@ -1,6 +1,7 @@
+from datetime import date
 from typing import Optional
 
-from sqlalchemy import Boolean, Integer, String, Text
+from sqlalchemy import Boolean, Date, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bot.models.base import Base
@@ -41,3 +42,6 @@ class BotSettings(Base):
     marra_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     marra_reminder_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     marra_reminder_hour: Mapped[int] = mapped_column(Integer, default=20)
+    # Belgilansa, shu sanadan keyin kunlik eslatma avtomatik to'xtaydi
+    # (marra davrasi necha kunligi asosida hisoblanadi).
+    marra_end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)

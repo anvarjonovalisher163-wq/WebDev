@@ -50,3 +50,4 @@ class MarraStates(StatesGroup):
     waiting_url = State()
     waiting_reminder_text = State()
     waiting_reminder_hour = State()
+    waiting_duration_days = State()

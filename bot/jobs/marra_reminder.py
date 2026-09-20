@@ -19,11 +19,13 @@ async def send_marra_reminders_job(bot: Bot) -> None:
     sozlagan eslatma soatiga to'g'ri kelgandagina xabar yuboradi - shunda
     admin soatni istalgan payt o'zgartirsa, scheduler'ni qayta sozlashning
     hojati bo'lmaydi."""
-    current_hour = datetime.now(TASHKENT_TZ).hour
+    now = datetime.now(TASHKENT_TZ)
 
     async with async_session_factory() as session:
         settings = await SettingsRepo(session).get()
-        if not settings.marra_url or settings.marra_reminder_hour != current_hour:
+        if not settings.marra_url or settings.marra_reminder_hour != now.hour:
+            return
+        if settings.marra_end_date and now.date() > settings.marra_end_date:
             return
 
         text = settings.marra_reminder_text or DEFAULT_MARRA_REMINDER_TEXT
