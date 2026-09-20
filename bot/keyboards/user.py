@@ -29,7 +29,6 @@ def subscription_gate_keyboard(channels: list[MandatoryChannel]) -> InlineKeyboa
 
 
 CB_MARRA_JOIN = "marra_join"
-CB_MARRA_LEAVE = "marra_leave"
 
 
 def marra_keyboard(marra_url: str, is_participant: bool) -> InlineKeyboardMarkup:
@@ -38,9 +37,7 @@ def marra_keyboard(marra_url: str, is_participant: bool) -> InlineKeyboardMarkup
             InlineKeyboardButton(text="📖 Marra sahifasini ochish", url=marra_url)
         ]
     ]
-    if is_participant:
-        rows.append([InlineKeyboardButton(text="🚫 Marradan chiqish", callback_data=CB_MARRA_LEAVE)])
-    else:
+    if not is_participant:
         rows.append([InlineKeyboardButton(text="✅ Marraga qo'shilaman", callback_data=CB_MARRA_JOIN)])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 

@@ -12,7 +12,6 @@ from bot.keyboards.user import (
     BTN_MARRA,
     BTN_MY_REFERRALS,
     CB_MARRA_JOIN,
-    CB_MARRA_LEAVE,
     CB_REFRESH_MY_REFERRALS,
     CB_SHOW_INVITE,
     marra_keyboard,
@@ -211,8 +210,8 @@ async def on_marra_button(message: Message, session: AsyncSession, bot: Bot) -> 
     )
 
 
-@router.callback_query(lambda c: c.data in (CB_MARRA_JOIN, CB_MARRA_LEAVE))
-async def on_marra_toggle(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
+@router.callback_query(lambda c: c.data == CB_MARRA_JOIN)
+async def on_marra_join(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
     user = await UserRepo(session).get_by_tg_id(callback.from_user.id)
     if user is None:
         await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
@@ -223,7 +222,7 @@ async def on_marra_toggle(callback: CallbackQuery, session: AsyncSession, bot: B
         await callback.answer()
         return
 
-    user.is_marra_participant = callback.data == CB_MARRA_JOIN
+    user.is_marra_participant = True
     await session.commit()
 
     try:
@@ -233,4 +232,4 @@ async def on_marra_toggle(callback: CallbackQuery, session: AsyncSession, bot: B
         )
     except TelegramBadRequest:
         pass
-    await callback.answer("Qo'shildingiz ✅" if user.is_marra_participant else "Chiqdingiz")
+    await callback.answer("Qo'shildingiz ✅")
