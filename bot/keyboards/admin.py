@@ -53,6 +53,7 @@ CB_ADMIN_MARRA = "admin:marra"
 CB_ADMIN_MARRA_SET_URL = "admin:marra_set_url"
 CB_ADMIN_MARRA_SET_TEXT = "admin:marra_set_text"
 CB_ADMIN_MARRA_SET_HOUR = "admin:marra_set_hour"
+CB_ADMIN_MARRA_PREVIEW = "admin:marra_preview"
 
 CB_ADMIN_BACK = "admin:back"
 CB_ADMIN_CANCEL = "admin:cancel"
@@ -252,6 +253,7 @@ def marra_menu_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="🔗 Havolani sozlash", callback_data=CB_ADMIN_MARRA_SET_URL)],
             [InlineKeyboardButton(text="✍️ Eslatma matnini sozlash", callback_data=CB_ADMIN_MARRA_SET_TEXT)],
             [InlineKeyboardButton(text="⏰ Eslatma soatini sozlash", callback_data=CB_ADMIN_MARRA_SET_HOUR)],
+            [InlineKeyboardButton(text="🔍 Tekshirish (o'zimga yuborish)", callback_data=CB_ADMIN_MARRA_PREVIEW)],
             [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)],
         ]
     )

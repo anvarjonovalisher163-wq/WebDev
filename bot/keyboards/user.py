@@ -1,6 +1,12 @@
 from typing import Optional
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    WebAppInfo,
+)
 
 from bot.keyboards.admin import ADMIN_SETTINGS_BTN
 from bot.models.channel import MandatoryChannel
@@ -33,7 +39,13 @@ CB_MARRA_LEAVE = "marra_leave"
 
 
 def marra_keyboard(marra_url: str, is_participant: bool) -> InlineKeyboardMarkup:
-    rows = [[InlineKeyboardButton(text="📖 Marra sahifasini ochish", url=marra_url)]]
+    rows = [
+        [
+            InlineKeyboardButton(
+                text="📖 Marra sahifasini ochish", web_app=WebAppInfo(url=marra_url)
+            )
+        ]
+    ]
     if is_participant:
         rows.append([InlineKeyboardButton(text="🚫 Marradan chiqish", callback_data=CB_MARRA_LEAVE)])
     else:

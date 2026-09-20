@@ -6,12 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.keyboards.admin import (
     CB_ADMIN_MARRA,
+    CB_ADMIN_MARRA_PREVIEW,
     CB_ADMIN_MARRA_SET_HOUR,
     CB_ADMIN_MARRA_SET_TEXT,
     CB_ADMIN_MARRA_SET_URL,
     cancel_keyboard,
     marra_menu_keyboard,
 )
+from bot.keyboards.user import marra_keyboard
 from bot.models.user import User
 from bot.repositories.settings_repo import SettingsRepo
 from bot.services.audit import log_admin_action
@@ -45,6 +47,23 @@ async def _menu_text(session: AsyncSession, settings) -> str:
 async def on_marra_menu(callback: CallbackQuery, session: AsyncSession) -> None:
     settings = await SettingsRepo(session).get()
     await callback.message.edit_text(await _menu_text(session, settings), reply_markup=marra_menu_keyboard())
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == CB_ADMIN_MARRA_PREVIEW)
+async def on_preview(callback: CallbackQuery, session: AsyncSession) -> None:
+    settings = await SettingsRepo(session).get()
+    if not settings.marra_url:
+        await callback.answer("Avval havolani sozlang.", show_alert=True)
+        return
+
+    text = settings.marra_reminder_text or DEFAULT_MARRA_REMINDER_TEXT
+    await callback.message.answer(
+        "🔍 Foydalanuvchi aynan shu ko'rinishda ko'radi (eslatma xabari namunasi):",
+    )
+    await callback.message.answer(
+        text, reply_markup=marra_keyboard(settings.marra_url, is_participant=True)
+    )
     await callback.answer()
 
 
