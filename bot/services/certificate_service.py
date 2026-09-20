@@ -99,13 +99,13 @@ def render_certificate(
 
     margin_x = 130
 
-    f_title = _font("Lora-Bold.ttf", 40)
-    f_subtitle = _font("Lora-Bold.ttf", 20)
-    f_name = _font("Lora-Bold.ttf", 64)
-    f_body = _font("Lora-Regular.ttf", 24)
-    f_meta_label = _font("Lora-Regular.ttf", 20)
-    f_date_value = _font("Lora-Bold.ttf", 20)
-    f_signature = _font("NothingYouCouldDo-Regular.ttf", 42)
+    f_title = _font("Outfit-Bold.ttf", 42)
+    f_subtitle = _font("Outfit-Bold.ttf", 19)
+    f_name = _font("Outfit-Bold.ttf", 58)
+    f_body = _font("Outfit-Regular.ttf", 22)
+    f_meta_label = _font("Outfit-Bold.ttf", 17)
+    f_date_value = _font("Outfit-Bold.ttf", 20)
+    f_signature = _font("Outfit-Bold.ttf", 30)
 
     # --- Yuqori-o'ng (ko'k) blokdagi sarlavha ---
     title_x = W - margin_x - 40
@@ -166,9 +166,9 @@ def render_certificate(
     if signature_name:
         sig_y = H - 210
         sig_w = 340
-        draw.text((content_x, sig_y - 54), signature_name, font=f_signature, fill=NAVY2)
+        draw.text((content_x, sig_y - 42), signature_name, font=f_signature, fill=NAVY2)
         draw.line([(content_x, sig_y), (content_x + sig_w, sig_y)], fill=LINE_GRAY, width=1)
-        draw.text((content_x, sig_y + 12), "Loyiha muallifi", font=f_meta_label, fill=GRAY)
+        _tracked_text(draw, content_x, sig_y + 14, "LOYIHA MUALLIFI", f_meta_label, GRAY, tracking=2)
 
     return img
 
