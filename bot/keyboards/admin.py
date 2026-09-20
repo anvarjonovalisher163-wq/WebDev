@@ -49,6 +49,11 @@ CB_ADMIN_CERTIFICATES = "admin:certificates"
 CB_ADMIN_CERT_ISSUE_PROMPT = "admin:cert_issue_prompt"
 CB_ADMIN_CERT_ISSUE_CONFIRM = "admin:cert_issue_confirm"
 
+CB_ADMIN_MARRA = "admin:marra"
+CB_ADMIN_MARRA_SET_URL = "admin:marra_set_url"
+CB_ADMIN_MARRA_SET_TEXT = "admin:marra_set_text"
+CB_ADMIN_MARRA_SET_HOUR = "admin:marra_set_hour"
+
 CB_ADMIN_BACK = "admin:back"
 CB_ADMIN_CANCEL = "admin:cancel"
 
@@ -66,6 +71,7 @@ def admin_main_menu_keyboard(webapp_url: str = "") -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🔐 Maxfiy kanal sozlamalari", callback_data=CB_ADMIN_SECRET_CHANNEL)],
         [InlineKeyboardButton(text="🏆 Mavsumlar", callback_data=CB_ADMIN_SEASONS)],
         [InlineKeyboardButton(text="🎓 Sertifikatlar", callback_data=CB_ADMIN_CERTIFICATES)],
+        [InlineKeyboardButton(text="📖 Marra", callback_data=CB_ADMIN_MARRA)],
     ]
     if webapp_url:
         rows.append(
@@ -236,6 +242,17 @@ def certificates_issue_confirm_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="✅ Ha, yuborish", callback_data=CB_ADMIN_CERT_ISSUE_CONFIRM)],
             [InlineKeyboardButton(text="❌ Bekor qilish", callback_data=CB_ADMIN_CERTIFICATES)],
+        ]
+    )
+
+
+def marra_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🔗 Havolani sozlash", callback_data=CB_ADMIN_MARRA_SET_URL)],
+            [InlineKeyboardButton(text="✍️ Eslatma matnini sozlash", callback_data=CB_ADMIN_MARRA_SET_TEXT)],
+            [InlineKeyboardButton(text="⏰ Eslatma soatini sozlash", callback_data=CB_ADMIN_MARRA_SET_HOUR)],
+            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)],
         ]
     )
 

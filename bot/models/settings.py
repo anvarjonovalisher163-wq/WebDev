@@ -35,3 +35,9 @@ class BotSettings(Base):
     certificate_subtitle: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     certificate_body_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     certificate_signature_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    # Mutolaa "Marra" (kitob o'qish challenge'i) - tashqi ilova, API'si yo'q,
+    # shuning uchun faqat havola + o'z-o'zidan qo'shilish + eslatma saqlanadi.
+    marra_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    marra_reminder_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    marra_reminder_hour: Mapped[int] = mapped_column(Integer, default=20)

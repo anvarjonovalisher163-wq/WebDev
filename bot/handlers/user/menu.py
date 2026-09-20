@@ -2,15 +2,20 @@ from typing import Optional
 
 from aiogram import Bot, F, Router
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.handlers.user._common import check_gate, get_gate_text
 from bot.keyboards.user import (
     BTN_LEADERBOARD,
+    BTN_MARRA,
     BTN_MY_REFERRALS,
+    CB_MARRA_JOIN,
+    CB_MARRA_LEAVE,
     CB_REFRESH_MY_REFERRALS,
     CB_SHOW_INVITE,
+    marra_keyboard,
     my_referrals_refresh_keyboard,
     subscription_gate_keyboard,
 )
@@ -175,3 +180,57 @@ async def on_leaderboard_button(message: Message, session: AsyncSession, bot: Bo
     active_season = await SeasonRepo(session).get_active()
     text = await SeasonService(session).get_leaderboard_text(active_season, highlight_user_id=user.id)
     await message.answer(text)
+
+
+def _marra_status_text(is_participant: bool) -> str:
+    status = "✅ Siz marrada ishtirok etyapsiz." if is_participant else "Siz hali marraga qo'shilmagansiz."
+    return (
+        "📖 Mutolaa \"Marra\" - kunlik kitob o'qish challenge'i.\n\n"
+        f"{status}\n\n"
+        "Diqqat: bot sizning haqiqiy o'qish holatingizni (necha daqiqa "
+        "o'qiganingiz, marradan chetlatilgan-chetlatilmaganingizni) Mutolaa "
+        "ilovasidan avtomatik bila olmaydi - buni faqat Mutolaa'ning o'zida "
+        "kuzatib boring. Bot sizga faqat kunlik eslatma yuboradi."
+    )
+
+
+@router.message(Command("marra"))
+@router.message(F.text == BTN_MARRA)
+async def on_marra_button(message: Message, session: AsyncSession, bot: Bot) -> None:
+    user = await _require_ready_user_msg(message, session, bot)
+    if user is None:
+        return
+
+    settings = await SettingsRepo(session).get()
+    if not settings.marra_url:
+        return
+
+    await message.answer(
+        _marra_status_text(user.is_marra_participant),
+        reply_markup=marra_keyboard(settings.marra_url, user.is_marra_participant),
+    )
+
+
+@router.callback_query(lambda c: c.data in (CB_MARRA_JOIN, CB_MARRA_LEAVE))
+async def on_marra_toggle(callback: CallbackQuery, session: AsyncSession, bot: Bot) -> None:
+    user = await UserRepo(session).get_by_tg_id(callback.from_user.id)
+    if user is None:
+        await callback.answer("Avval /start buyrug'ini yuboring.", show_alert=True)
+        return
+
+    settings = await SettingsRepo(session).get()
+    if not settings.marra_url:
+        await callback.answer()
+        return
+
+    user.is_marra_participant = callback.data == CB_MARRA_JOIN
+    await session.commit()
+
+    try:
+        await callback.message.edit_text(
+            _marra_status_text(user.is_marra_participant),
+            reply_markup=marra_keyboard(settings.marra_url, user.is_marra_participant),
+        )
+    except TelegramBadRequest:
+        pass
+    await callback.answer("Qo'shildingiz ✅" if user.is_marra_participant else "Chiqdingiz")

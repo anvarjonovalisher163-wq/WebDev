@@ -47,4 +47,6 @@ class User(Base):
     cert_requested_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     cert_issued_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    is_marra_participant: Mapped[bool] = mapped_column(Boolean, default=False)
+
     referrer: Mapped[Optional["User"]] = relationship(remote_side=[id])

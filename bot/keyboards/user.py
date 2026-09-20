@@ -11,6 +11,7 @@ CB_SHOW_INVITE = "show_invite"
 
 BTN_MY_REFERRALS = "📊 Mening takliflarim"
 BTN_LEADERBOARD = "🏆 Reyting"
+BTN_MARRA = "📖 Marra"
 
 DEFAULT_SHARE_TEXT = "Yopiq kanalga qo'shilish uchun shu botga kiring!"
 
@@ -24,6 +25,19 @@ def subscription_gate_keyboard(channels: list[MandatoryChannel]) -> InlineKeyboa
     rows.append(
         [InlineKeyboardButton(text="✅ Obunani tekshirish", callback_data=CB_CHECK_SUBSCRIPTION)]
     )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+CB_MARRA_JOIN = "marra_join"
+CB_MARRA_LEAVE = "marra_leave"
+
+
+def marra_keyboard(marra_url: str, is_participant: bool) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton(text="📖 Marra sahifasini ochish", url=marra_url)]]
+    if is_participant:
+        rows.append([InlineKeyboardButton(text="🚫 Marradan chiqish", callback_data=CB_MARRA_LEAVE)])
+    else:
+        rows.append([InlineKeyboardButton(text="✅ Marraga qo'shilaman", callback_data=CB_MARRA_JOIN)])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -41,7 +55,9 @@ def welcome_actions_keyboard(referral_link: str) -> InlineKeyboardMarkup:
     )
 
 
-def main_reply_keyboard(webapp_url: str = "", is_admin: bool = False) -> Optional[ReplyKeyboardMarkup]:
+def main_reply_keyboard(
+    webapp_url: str = "", is_admin: bool = False, marra_enabled: bool = False
+) -> Optional[ReplyKeyboardMarkup]:
     """Doimiy pastki menyu. Mini App manzili sozlangan bo'lsa, "Mening
     takliflarim" va "Reyting" uchun alohida tugma kerak emas - ikkalasi ham
     xabar yozish maydoni yonidagi tabiiy Telegram menyu tugmasi ("Reyting")
@@ -49,10 +65,13 @@ def main_reply_keyboard(webapp_url: str = "", is_admin: bool = False) -> Optiona
     Shu holatda oddiy foydalanuvchi uchun pastki menyuda ko'rsatiladigan
     hech narsa qolmaydi (None qaytadi). Mini App sozlanmagan bo'lsa,
     ikkalasi ham matnli (eski) tugmalar sifatida ko'rsatiladi. Adminlar
-    uchun har doim qo'shimcha "Sozlamalar" tugmasi qo'shiladi."""
+    uchun har doim qo'shimcha "Sozlamalar" tugmasi qo'shiladi. "Marra"
+    havolasi sozlangan bo'lsa, alohida tugma qo'shiladi."""
     rows = []
     if not webapp_url:
         rows.append([KeyboardButton(text=BTN_MY_REFERRALS), KeyboardButton(text=BTN_LEADERBOARD)])
+    if marra_enabled:
+        rows.append([KeyboardButton(text=BTN_MARRA)])
     if is_admin:
         rows.append([KeyboardButton(text=ADMIN_SETTINGS_BTN)])
 

@@ -39,12 +39,16 @@ async def cmd_start(
         await message.answer("Siz botdan foydalanish huquqidan mahrum qilingansiz.")
         return
 
+    settings = await SettingsRepo(session).get()
+
     # Pastki (doimiy) menyuni ("Mening takliflarim" / "Reyting", adminlar uchun
     # qo'shimcha "Sozlamalar") faqat foydalanuvchi uchun BIRINCHI marta
     # o'rnatamiz - har safar /start bosilganda qayta xabar yubormaslik uchun.
     if not user.reply_menu_shown:
         is_admin = await AdminRepo(session).get_by_tg_id(tg_user.id) is not None
-        keyboard = main_reply_keyboard(app_settings.webapp_url, is_admin)
+        keyboard = main_reply_keyboard(
+            app_settings.webapp_url, is_admin, marra_enabled=bool(settings.marra_url)
+        )
         if keyboard is not None:
             await message.answer("📋 Asosiy menyu pastda yoqildi.", reply_markup=keyboard)
         else:
@@ -59,7 +63,6 @@ async def cmd_start(
     if not is_subscribed:
         user.is_subscribed = False
         await session.commit()
-        settings = await SettingsRepo(session).get()
         await message.answer(
             get_gate_text(settings),
             reply_markup=subscription_gate_keyboard(not_subscribed),
@@ -69,7 +72,6 @@ async def cmd_start(
     await finalize_subscription(session, bot, user, referral_service)
     await session.commit()
 
-    settings = await SettingsRepo(session).get()
     link = build_referral_link(bot_username, user.tg_id)
     welcome_text = get_welcome_text(settings, user.first_name, link)
     keyboard = welcome_actions_keyboard(link)

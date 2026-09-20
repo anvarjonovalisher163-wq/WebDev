@@ -5,6 +5,7 @@ from bot.handlers.admin.admins import router as admins_router
 from bot.handlers.admin.broadcast import router as broadcast_router
 from bot.handlers.admin.certificates import router as certificates_router
 from bot.handlers.admin.channels import router as channels_router
+from bot.handlers.admin.marra import router as marra_router
 from bot.handlers.admin.panel import router as panel_router
 from bot.handlers.admin.referral_content import router as referral_content_router
 from bot.handlers.admin.requirements import router as requirements_router
@@ -30,3 +31,4 @@ router.include_router(search_router)
 router.include_router(admins_router)
 router.include_router(seasons_router)
 router.include_router(certificates_router)
+router.include_router(marra_router)

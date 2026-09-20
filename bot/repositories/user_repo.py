@@ -107,3 +107,12 @@ class UserRepo:
             )
         )
         return list(result.scalars().all())
+
+    async def list_marra_participants(self) -> list[User]:
+        result = await self.session.execute(
+            select(User).where(
+                User.is_marra_participant.is_(True),
+                User.is_blocked.is_(False),
+            )
+        )
+        return list(result.scalars().all())
