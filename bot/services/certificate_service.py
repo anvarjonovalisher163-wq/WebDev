@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 FONTS_DIR = ASSETS_DIR / "fonts"
 LOGO_PATH = ASSETS_DIR / "images" / "uchqun_logo.png"
+MEDAL_PATH = ASSETS_DIR / "images" / "uchqun_medal.png"
 
 # A4 albom (landscape) nisbati - 297x210mm, taxminan 150dpi
 W, H = 1754, 1240
@@ -21,7 +22,6 @@ GRAY = (110, 118, 132)
 BODY_GRAY = (75, 82, 96)
 LINE_GRAY = (200, 206, 218)
 GOLD = (196, 155, 74)
-GOLD_LIGHT = (224, 193, 128)
 
 DEFAULT_ACCEPTANCE_TEXT = "🎉 Tabriklaymiz, {ism}! Siz UCHQUN loyihasiga qabul qilindingiz."
 DEFAULT_CERTIFICATE_SUBTITLE = "ISHTIROK ETGANLIK SERTIFIKATI"
@@ -53,86 +53,6 @@ def _draw_star(draw, cx, cy, r_outer, r_inner, color):
         r = r_outer if i % 2 == 0 else r_inner
         points.append((cx + r * math.cos(angle), cy + r * math.sin(angle)))
     draw.polygon(points, fill=color)
-
-
-def _draw_leaf(draw, cx, cy, angle, length, width, color):
-    """Bitta laur bargi - berilgan burchak bo'yicha cho'zilgan romb shakli."""
-    dx, dy = math.cos(angle), math.sin(angle)
-    nx, ny = -dy, dx
-    tip = (cx + dx * length, cy + dy * length)
-    base = (cx, cy)
-    mid = (cx + dx * length * 0.45, cy + dy * length * 0.45)
-    p1 = (mid[0] + nx * width, mid[1] + ny * width)
-    p2 = (mid[0] - nx * width, mid[1] - ny * width)
-    draw.polygon([base, p1, tip, p2], fill=color)
-
-
-def _draw_laurel_branch(draw, cx, cy, side, color):
-    """Chap (side=-1) yoki o'ng (side=1) tomonga qaragan laur shoxchasi."""
-    for i in range(7):
-        t = i / 6
-        angle = math.pi * (0.62 - 0.30 * t) if side < 0 else math.pi * (0.38 + 0.30 * t)
-        r = 34 + t * 40
-        leaf_cx = cx + side * r * math.sin(t * 1.0 + 0.2)
-        leaf_cy = cy - r * 0.55 + t * 78
-        _draw_leaf(draw, leaf_cx, leaf_cy, angle if side < 0 else math.pi - angle, 22, 7, color)
-
-
-def _draw_medal(draw: ImageDraw.ImageDraw, cx: float, cy: float, r: float) -> None:
-    """Na'muna sifatida yuborilgan ko'k-oltin medal/rozetkaga o'xshash
-    nishon chizadi: tishli chegara, oltin halqa, laur shoxchalari va
-    markazda yulduzcha."""
-    scallop_r = r * 0.22
-    for i in range(16):
-        angle = 2 * math.pi * i / 16
-        bx = cx + r * math.cos(angle)
-        by = cy + r * math.sin(angle)
-        draw.ellipse([bx - scallop_r, by - scallop_r, bx + scallop_r, by + scallop_r], fill=NAVY)
-    draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=NAVY)
-
-    ring_r = r * 0.86
-    draw.ellipse(
-        [cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r], outline=GOLD, width=max(2, int(r * 0.045))
-    )
-
-    inner_r = r * 0.72
-    draw.ellipse([cx - inner_r, cy - inner_r, cx + inner_r, cy + inner_r], fill=CREAM)
-    draw.ellipse(
-        [cx - inner_r, cy - inner_r, cx + inner_r, cy + inner_r], outline=GOLD_LIGHT, width=2
-    )
-
-    _draw_laurel_branch(draw, cx, cy, -1, GOLD)
-    _draw_laurel_branch(draw, cx, cy, 1, GOLD)
-    _draw_star(draw, cx, cy, inner_r * 0.42, inner_r * 0.17, GOLD)
-
-    ribbon_w = r * 0.34
-    ribbon_len = r * 1.0
-    draw.polygon(
-        [
-            (cx - ribbon_w * 1.1, cy + r * 0.72),
-            (cx - ribbon_w * 0.15, cy + r * 0.72),
-            (cx - ribbon_w * 0.05, cy + r * 0.72 + ribbon_len),
-            (cx - ribbon_w * 0.9, cy + r * 0.72 + ribbon_len * 0.72),
-        ],
-        fill=NAVY,
-    )
-    draw.polygon(
-        [
-            (cx + ribbon_w * 1.1, cy + r * 0.72),
-            (cx + ribbon_w * 0.15, cy + r * 0.72),
-            (cx + ribbon_w * 0.05, cy + r * 0.72 + ribbon_len),
-            (cx + ribbon_w * 0.9, cy + r * 0.72 + ribbon_len * 0.72),
-        ],
-        fill=NAVY2,
-    )
-    draw.line(
-        [(cx - ribbon_w * 0.5, cy + r * 0.72), (cx - ribbon_w * 0.35, cy + r * 0.72 + ribbon_len * 0.75)],
-        fill=GOLD, width=3,
-    )
-    draw.line(
-        [(cx + ribbon_w * 0.5, cy + r * 0.72), (cx + ribbon_w * 0.35, cy + r * 0.72 + ribbon_len * 0.75)],
-        fill=GOLD, width=3,
-    )
 
 
 def _wrap_text(draw, text, fnt, max_width):
@@ -200,10 +120,19 @@ def render_certificate(
         _tracked_text(draw, title_x - w, ty, line, f_subtitle, WHITE, tracking=3)
         ty += 32
 
-    # --- Nishon (medal) - "TAQDIM ETILADI" yozuvi tepasida ---
-    medal_r = 88
-    medal_cx, medal_cy = margin_x + medal_r - 10, 300
-    _draw_medal(draw, medal_cx, medal_cy, medal_r)
+    # --- Nishon (medal, foydalanuvchi yuborgan rasm) - "TAQDIM ETILADI" tepasida ---
+    if MEDAL_PATH.exists():
+        medal = Image.open(MEDAL_PATH).convert("RGBA")
+        medal_w = 210
+        medal_h = int(medal.height * medal_w / medal.width)
+        medal_resized = medal.resize((medal_w, medal_h), Image.LANCZOS)
+        medal_x, medal_y = margin_x, 210
+        img.paste(medal_resized, (medal_x, medal_y), medal_resized)
+
+        star_cx = medal_x + medal_w * 0.5
+        star_cy = medal_y + medal_h * 0.372
+        star_r = medal_w * 0.135
+        _draw_star(draw, star_cx, star_cy, star_r, star_r * 0.42, GOLD)
 
     # --- Logotip (pastda, yorug' fonda) ---
     if LOGO_PATH.exists():
