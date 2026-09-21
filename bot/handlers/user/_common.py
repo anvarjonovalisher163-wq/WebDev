@@ -59,9 +59,27 @@ async def finalize_subscription(
     settings = await SettingsRepo(session).get()
     season_repo = SeasonRepo(session)
     active_season = await season_repo.get_active()
+
+    # Ko'rsatiladigan hisoblagich HAQIQIY holatni aks ettirishi uchun, matnni
+    # tuzishdan OLDIN barcha oldingi tasdiqlangan takliflarning majburiy
+    # kanallarga obunasi qayta tekshiriladi (kimdir chiqib ketgan bo'lsa,
+    # hisobdan chiqariladi). Aks holda foydalanuvchiga "5/5" deb ko'rsatilib,
+    # keyin (try_auto_grant_secret_link ichida xuddi shu tekshiruv ishlagach)
+    # maxfiy havola sira berilmay qolar edi - foydalanuvchi buni tushunmay qolardi.
+    before_recheck = await referral_service.get_progress(
+        referrer.id, settings.required_referral_count, active_season.id
+    )
+    await referral_service.recheck_approved_before_secret_link(referrer.id, channels)
     progress = await referral_service.get_progress(
         referrer.id, settings.required_referral_count, active_season.id
     )
+    left_channels_notice = ""
+    dropped = before_recheck["approved"] - progress["approved"]
+    if dropped > 0:
+        left_channels_notice = (
+            f"\n\n⚠️ Diqqat: siz taklif qilgan {dropped} ta foydalanuvchi keyinchalik "
+            "majburiy kanal(lar)dan chiqib ketgani uchun endi hisoblanmaydi."
+        )
 
     # Taklif qilingan foydalanuvchi botga JORIY mavsum boshlanishidan OLDIN
     # ro'yxatdan o'tgan bo'lishi mumkin (masalan, havolani olib, obunani
@@ -76,11 +94,13 @@ async def finalize_subscription(
             "boshlanishidan oldin) ro'yxatdan o'tgan edi, shuning uchun bu taklif joriy "
             "mavsum hisoblagichiga qo'shilmaydi.\n\n"
             f"Joriy mavsumdagi tasdiqlangan takliflaringiz: {progress['approved']}/{progress['required']}."
+            f"{left_channels_notice}"
         )
     else:
         confirmation_text = (
             "Tabriklaymiz! Siz taklif qilgan yangi foydalanuvchi barcha shartlarni bajardi.\n\n"
             f"Tasdiqlangan takliflaringiz: {progress['approved']}/{progress['required']}."
+            f"{left_channels_notice}"
         )
 
     try:
