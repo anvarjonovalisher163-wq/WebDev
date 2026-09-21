@@ -48,3 +48,13 @@ class GroupRepo:
     async def list_enabled(self) -> list[Group]:
         result = await self.session.execute(select(Group).where(Group.enabled.is_(True)))
         return list(result.scalars().all())
+
+    async def list_all(self) -> list[Group]:
+        result = await self.session.execute(select(Group).order_by(Group.created_at.desc()))
+        return list(result.scalars().all())
+
+    async def set_unlimited_free(self, group: Group) -> None:
+        """Guruhni cheksiz muddatga bepul (obuna talab qilinmaydigan) qiladi."""
+        group.access_until = None
+        group.enabled = True
+        await self.session.flush()

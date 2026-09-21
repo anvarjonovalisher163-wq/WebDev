@@ -18,6 +18,7 @@ HELP_TEXT = (
     "/tokens — Gemini tokenlaridan foydalanish va xarajat hisoboti\n"
     "/stats — guruhlar va tutilgan spam statistikasi (operator uchun)\n"
     "/daromad — Stars daromadi hisoboti (operator uchun)\n"
+    "/guruhlar — barcha guruhlar ro'yxati, tafsilotlari va obuna holatini boshqarish (operator uchun)\n"
     "/privacy — maxfiylik siyosati"
 )
 
