@@ -1,6 +1,8 @@
 from typing import Optional
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramAPIError
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.season import Season
@@ -36,7 +38,19 @@ async def try_auto_grant_secret_link(
         return None
 
     invite_service = InviteService(session, bot)
-    link = await invite_service.create_one_time_link(user, settings, season)
+    try:
+        link = await invite_service.create_one_time_link(user, settings, season)
+    except TelegramAPIError as exc:
+        logger.error(
+            "Maxfiy havola yaratib bo'lmadi (user_id={}, tg_id={}, kanal={}): {}",
+            user.id, user.tg_id, season.secret_channel_id, exc,
+        )
+        return (
+            "🎉 Siz barcha shartlarni bajardingiz!\n\n"
+            "⚠️ Ammo maxfiy havolani yaratishda texnik xatolik yuz berdi "
+            "(bot kanalda administrator emas yoki huquqlari yetarli emas bo'lishi mumkin). "
+            "Iltimos, admin bilan bog'laning - muammo hal bo'lgach, shu tugmani qayta bosing."
+        )
     await session.commit()
 
     return (
