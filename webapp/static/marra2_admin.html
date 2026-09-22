@@ -187,6 +187,69 @@ async function loadCampaigns() {
   }
 }
 
+let detailData = null;
+let activeTab = "all";
+
+const TABS = [
+  { key: "all", label: "Barchasi" },
+  { key: "done", label: "Bajarganlar" },
+  { key: "pending", label: "Kutilmoqda" },
+  { key: "left", label: "Tark etganlar" },
+];
+
+function filterParticipants(data, tab) {
+  const today = data.today_day_number;
+  return data.participants.filter((p) => {
+    if (tab === "all") return true;
+    if (tab === "left") return p.is_eliminated;
+    if (p.is_eliminated) return false;
+    const doneToday = p.completed_days.includes(today);
+    return tab === "done" ? doneToday : !doneToday;
+  });
+}
+
+function renderParticipantTable(data, tab) {
+  const days = data.campaign.day_count;
+  const list = filterParticipants(data, tab);
+
+  const tabsHtml = TABS.map(
+    (t) =>
+      `<button class="toggle-btn tab-btn" data-tab="${t.key}" style="${
+        t.key === tab ? "background:var(--navy);color:#fff;" : ""
+      }">${t.label} (${filterParticipants(data, t.key).length})</button>`
+  ).join(" ");
+
+  let html = `<p class="hint">Bugungi kun: ${data.today_day_number}/${days}</p>`;
+  html += `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabsHtml}</div>`;
+
+  if (!list.length) {
+    html += '<p class="hint">Bu bo\'limda hech kim yo\'q.</p>';
+  } else {
+    html += "<table><tr><th>Ism</th><th>Kunlar</th><th>Holat</th></tr>";
+    list.forEach((p) => {
+      let dots = "";
+      for (let d = 1; d <= days; d++) {
+        const done = p.completed_days.includes(d);
+        dots += `<span class="dot ${done ? "done" : "miss"}">${d}</span>`;
+      }
+      const status = p.is_eliminated
+        ? `<span class="elim">chiqarilgan (${p.eliminated_on_day}-kun)</span>`
+        : "faol";
+      html += `<tr><td>${p.name}${p.username ? " @" + p.username : ""}</td><td>${dots}</td><td>${status}</td></tr>`;
+    });
+    html += "</table>";
+  }
+
+  const body = document.getElementById("detail-body");
+  body.innerHTML = html;
+  body.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activeTab = btn.dataset.tab;
+      renderParticipantTable(detailData, activeTab);
+    });
+  });
+}
+
 async function showDetail(id, title) {
   const card = document.getElementById("detail-card");
   const body = document.getElementById("detail-body");
@@ -196,27 +259,9 @@ async function showDetail(id, title) {
   card.scrollIntoView({ behavior: "smooth" });
 
   try {
-    const data = await api(`/api/admin/marra2/campaigns/${id}/participants`);
-    const days = data.campaign.day_count;
-    let html = `<p class="hint">Bugungi kun: ${data.today_day_number}/${days}</p>`;
-    if (!data.participants.length) {
-      html += '<p class="hint">Hali hech kim qo\'shilmagan.</p>';
-    } else {
-      html += "<table><tr><th>Ism</th><th>Kunlar</th><th>Holat</th></tr>";
-      data.participants.forEach((p) => {
-        let dots = "";
-        for (let d = 1; d <= days; d++) {
-          const done = p.completed_days.includes(d);
-          dots += `<span class="dot ${done ? "done" : "miss"}">${d}</span>`;
-        }
-        const status = p.is_eliminated
-          ? `<span class="elim">chiqarilgan (${p.eliminated_on_day}-kun)</span>`
-          : "faol";
-        html += `<tr><td>${p.name}${p.username ? " @" + p.username : ""}</td><td>${dots}</td><td>${status}</td></tr>`;
-      });
-      html += "</table>";
-    }
-    body.innerHTML = html;
+    detailData = await api(`/api/admin/marra2/campaigns/${id}/participants`);
+    activeTab = "all";
+    renderParticipantTable(detailData, activeTab);
   } catch (err) {
     body.innerHTML = `<p class="status err">${err.message}</p>`;
   }

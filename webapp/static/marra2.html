@@ -96,6 +96,7 @@ function renderCampaign(data) {
     <p class="hint">${data.book_title} - ${data.day_count} kunlik marra</p>
     ${data.description ? `<div class="card"><div class="hint">${data.description}</div></div>` : ""}
     ${data.prize_text ? `<div class="card">🏆 <b>Sovrin:</b> ${data.prize_text}</div>` : ""}
+    <p class="hint">Marra muallifi: UCHQUN</p>
 
     <div class="card" id="join-card" style="display:${data.joined ? "none" : "block"};">
       <p>Marraga qo'shilib, kunlik ${data.daily_minutes_required} daqiqa o'qishni boshlang.</p>
