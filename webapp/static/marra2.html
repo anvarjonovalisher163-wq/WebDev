@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Marra</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #f4f7fb; --card-bg: #ffffff; --text: #101a2e; --hint: rgba(20,30,55,0.6);
+    --navy: #071944; --accent: #2a78c8; --border: #e2e7f0; --green: #1a9e5c; --red: #d0473b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0c1220; --card-bg: #151c30; --text: #f2f6ff; --hint: rgba(220,230,250,0.65); --border: #26304a; }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
+  body { padding: 16px 16px 40px; }
+  h1 { font-size: 18px; margin: 4px 0 4px; }
+  .hint { color: var(--hint); font-size: 13px; }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .blocked { text-align: center; padding: 60px 20px; color: var(--hint); }
+
+  .progress-wrap { background: var(--border); border-radius: 20px; height: 10px; overflow: hidden; margin: 8px 0; }
+  .progress-bar { background: var(--green); height: 100%; width: 0%; transition: width 0.4s; }
+  .progress-label { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; }
+
+  .days { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .day { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; background: var(--border); color: var(--hint); }
+  .day.done { background: var(--green); color: #fff; }
+  .day.today { outline: 2px solid var(--accent); }
+
+  button.primary { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--navy);
+    color: #fff; font-size: 15px; font-weight: 600; margin-top: 10px; cursor: pointer; }
+  button.primary:disabled { opacity: 0.5; }
+
+  .book-text { white-space: pre-wrap; font-size: 15px; line-height: 1.7; max-height: 50vh; overflow-y: auto;
+    border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 10px; }
+
+  .warn { font-size: 12px; color: var(--red); margin-top: 10px; }
+  .ok-msg { text-align: center; color: var(--green); font-weight: 600; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div id="blocked" class="blocked" style="display:none;"></div>
+<div id="app" style="display:none;"></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+const initData = tg?.initData || "";
+const params = new URLSearchParams(window.location.search);
+const campaignId = params.get("id");
+
+const appEl = document.getElementById("app");
+const blockedEl = document.getElementById("blocked");
+
+function showBlocked(text) {
+  blockedEl.textContent = text;
+  blockedEl.style.display = "block";
+  appEl.style.display = "none";
+}
+
+async function apiGet(path) {
+  const res = await fetch(`${path}?init_data=${encodeURIComponent(initData)}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `Xatolik (${res.status})`);
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "X-Telegram-Init-Data": initData, "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `Xatolik (${res.status})`);
+  return res.json();
+}
+
+let heartbeatTimer = null;
+
+function renderCampaign(data) {
+  const daysHtml = Array.from({ length: data.day_count }, (_, i) => {
+    const day = i + 1;
+    const cls = ["day"];
+    if (day === data.today_day_number) cls.push("today");
+    return `<div class="${cls.join(" ")}" id="day-${day}">${day}</div>`;
+  }).join("");
+
+  appEl.innerHTML = `
+    <h1>📖 ${data.title}</h1>
+    <p class="hint">${data.book_title} - ${data.day_count} kunlik marra</p>
+    ${data.description ? `<div class="card"><div class="hint">${data.description}</div></div>` : ""}
+    ${data.prize_text ? `<div class="card">🏆 <b>Sovrin:</b> ${data.prize_text}</div>` : ""}
+
+    <div class="card" id="join-card" style="display:${data.joined ? "none" : "block"};">
+      <p>Marraga qo'shilib, kunlik ${data.daily_minutes_required} daqiqa o'qishni boshlang.</p>
+      <button class="primary" id="btn-join">Marraga qo'shilish</button>
+    </div>
+
+    <div id="active-area" style="display:${data.joined ? "block" : "none"};">
+      <div class="card">
+        <div class="progress-label"><span id="progress-text">0 / ${data.daily_minutes_required} daq</span><span id="progress-pct">0%</span></div>
+        <div class="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+        <div class="days">${daysHtml}</div>
+        ${data.is_eliminated ? '<p class="warn">Siz ushbu marradan avtomatik chiqarilgansiz - kunlardan biri bajarilmagan.</p>' : ""}
+        <p id="completed-msg" class="ok-msg" style="display:none;">Bugungi vazifa bajarildi ✅</p>
+      </div>
+      <div class="card">
+        <div class="book-text" id="book-text">${data.book_text || ""}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("btn-join").addEventListener("click", async () => {
+    await apiPost(`/api/marra2/campaigns/${campaignId}/join`);
+    await load();
+  });
+
+  updateProgress(data.seconds_read_today, data.required_seconds, data.completed_today);
+  document.querySelectorAll(".day").forEach((el) => {
+    const day = parseInt(el.id.replace("day-", ""), 10);
+    if (day < data.today_day_number || (day === data.today_day_number && data.completed_today)) {
+      el.classList.add("done");
+    }
+  });
+
+  if (data.joined && !data.is_eliminated && !data.completed_today) {
+    startHeartbeat();
+  }
+}
+
+function updateProgress(seconds, required, completed) {
+  const pct = Math.min(100, Math.round((seconds / required) * 100));
+  document.getElementById("progress-bar").style.width = `${pct}%`;
+  document.getElementById("progress-pct").textContent = `${pct}%`;
+  document.getElementById("progress-text").textContent = `${Math.floor(seconds / 60)} / ${Math.floor(required / 60)} daq`;
+  document.getElementById("completed-msg").style.display = completed ? "block" : "none";
+}
+
+function startHeartbeat() {
+  if (heartbeatTimer) return;
+  const HEARTBEAT_SECONDS = 10;
+  heartbeatTimer = setInterval(async () => {
+    if (document.visibilityState !== "visible") return;
+    try {
+      const res = await apiPost(`/api/marra2/campaigns/${campaignId}/heartbeat`, { seconds: HEARTBEAT_SECONDS });
+      updateProgress(res.seconds_read, res.required_seconds, res.completed);
+      if (res.completed) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+        await load();
+      }
+    } catch (err) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  }, HEARTBEAT_SECONDS * 1000);
+}
+
+async function load() {
+  const data = await apiGet(`/api/marra2/campaigns/${campaignId}`);
+  renderCampaign(data);
+}
+
+(async function init() {
+  if (!initData) {
+    showBlocked("Bu sahifa faqat Telegram ilovasi orqali ochiladi.");
+    return;
+  }
+  if (!campaignId) {
+    showBlocked("Marra topilmadi (id ko'rsatilmagan).");
+    return;
+  }
+  try {
+    await load();
+    appEl.style.display = "block";
+  } catch (err) {
+    showBlocked(err.message);
+  }
+})();
+</script>
+
+</body>
+</html>

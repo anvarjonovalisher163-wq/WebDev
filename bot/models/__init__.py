@@ -3,6 +3,7 @@ from bot.models.admin_log import AdminLog
 from bot.models.base import Base
 from bot.models.channel import MandatoryChannel
 from bot.models.invite_link import InviteLink, InviteLinkStatus
+from bot.models.marra_campaign import MarraCampaign, MarraDailyProgress, MarraParticipant
 from bot.models.referral import Referral, ReferralStatus
 from bot.models.season import Season
 from bot.models.settings import BotSettings
@@ -20,4 +21,7 @@ __all__ = [
     "Admin",
     "AdminLog",
     "Season",
+    "MarraCampaign",
+    "MarraParticipant",
+    "MarraDailyProgress",
 ]

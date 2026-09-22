@@ -3,10 +3,12 @@ import hmac
 import io
 import json
 import time
-from datetime import datetime, timezone
+from datetime import date as date_type
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qsl
+from zoneinfo import ZoneInfo
 
 import httpx
 from fastapi import Body, FastAPI, Header, HTTPException, Query
@@ -15,7 +17,11 @@ from fastapi.staticfiles import StaticFiles
 
 from bot.config import settings
 from bot.db.session import async_session_factory
+from bot.models.marra_campaign import MarraCampaign
 from bot.repositories.admin_repo import AdminRepo
+from bot.repositories.marra_campaign_repo import MarraCampaignRepo
+from bot.repositories.marra_participant_repo import MarraParticipantRepo
+from bot.repositories.marra_progress_repo import MarraProgressRepo
 from bot.repositories.referral_repo import ReferralRepo
 from bot.repositories.season_repo import SeasonRepo
 from bot.repositories.settings_repo import SettingsRepo
@@ -30,6 +36,8 @@ from bot.services.certificate_service import (
 from bot.services.referral_service import ReferralService
 from bot.services.season_service import SeasonService
 from bot.services.subscription_service import SubscriptionService
+
+TASHKENT_TZ = ZoneInfo("Asia/Tashkent")
 
 INIT_DATA_MAX_AGE_SECONDS = 86400
 TELEGRAM_API = f"https://api.telegram.org/bot{settings.bot_token}"
@@ -133,6 +141,22 @@ async def index() -> FileResponse:
 @app.get("/admin")
 async def admin_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "admin.html")
+
+
+# UCHQUN 2.0 - Marra (o'qish marafoni). Hozircha hech qayerdan (index.html,
+# admin.html, bot menyusi) link berilmagan - faqat to'g'ridan-to'g'ri URL
+# bilan va faqat admin sifatida ochish mumkin (pastdagi barcha /api/marra2/*
+# va /api/admin/marra2/* endpointlar ham admin talab qiladi). UCHQUN 1.0
+# foydalanuvchilariga butunlay ko'rinmaydi va ular bilan hech qanday
+# aloqasi yo'q (eski Marra - settings.marra_url va h.k. - o'zgarishsiz qoladi).
+@app.get("/marra2-admin")
+async def marra2_admin_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "marra2_admin.html")
+
+
+@app.get("/marra2")
+async def marra2_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "marra2.html")
 
 
 async def _require_admin(init_data: str, session) -> dict:
@@ -305,4 +329,256 @@ async def my_stats(x_telegram_init_data: str = Header(default="")) -> dict:
             "progress": progress,
             "channel_status": channel_status,
             "rank": position[0] if position else None,
+        }
+
+
+# ============================================================================
+# UCHQUN 2.0 - Marra (o'qish marafoni), Mutolaa'dagi mexanizmga o'xshab:
+# ishtirokchi kitobni shu Mini App ichida o'qiydi, sahifa faol/ko'rinib
+# turgan vaqt avtomatik hisoblanadi (heartbeat), kunlik talab bajarilmasa
+# ishtirokchi avtomatik chiqariladi (bot/jobs/marra2_elimination.py).
+#
+# HOZIRCHA HAMMA ENDPOINT (ishtirokchi tomoni ham) _require_admin bilan
+# cheklangan - chunki bu hali sinov bosqichida va UCHQUN 1.0
+# foydalanuvchilariga ko'rinmasligi kerak. Ommaga ochish payti kelganda,
+# ishtirokchi endpointlaridagi _require_admin chaqiruvini oddiy
+# Telegram-autentifikatsiyaga (faqat _verify_init_data, admin tekshiruvisiz)
+# almashtirish kifoya.
+# ============================================================================
+
+
+def _marra2_day_number(campaign: MarraCampaign, on_date: date_type) -> int:
+    return (on_date - campaign.start_date).days + 1
+
+
+def _marra2_campaign_summary(campaign: MarraCampaign) -> dict:
+    return {
+        "id": campaign.id,
+        "title": campaign.title,
+        "description": campaign.description,
+        "prize_text": campaign.prize_text,
+        "book_title": campaign.book_title,
+        "day_count": campaign.day_count,
+        "daily_minutes_required": campaign.daily_minutes_required,
+        "start_date": campaign.start_date.isoformat(),
+        "end_date": (campaign.start_date + timedelta(days=campaign.day_count - 1)).isoformat(),
+        "is_active": campaign.is_active,
+    }
+
+
+@app.get("/api/admin/marra2/campaigns")
+async def marra2_list_campaigns(x_telegram_init_data: str = Header(default="")) -> dict:
+    async with async_session_factory() as session:
+        await _require_admin(x_telegram_init_data, session)
+        campaign_repo = MarraCampaignRepo(session)
+        participant_repo = MarraParticipantRepo(session)
+
+        items = []
+        for campaign in await campaign_repo.list_all():
+            item = _marra2_campaign_summary(campaign)
+            item["participant_count"] = await participant_repo.count_by_campaign(campaign.id)
+            item["active_participant_count"] = await participant_repo.count_by_campaign(
+                campaign.id, eliminated=False
+            )
+            items.append(item)
+        return {"campaigns": items}
+
+
+@app.post("/api/admin/marra2/campaigns")
+async def marra2_create_campaign(
+    payload: dict = Body(...), x_telegram_init_data: str = Header(default="")
+) -> dict:
+    async with async_session_factory() as session:
+        await _require_admin(x_telegram_init_data, session)
+
+        title = (payload.get("title") or "").strip()
+        book_title = (payload.get("book_title") or "").strip()
+        book_text = (payload.get("book_text") or "").strip()
+        try:
+            day_count = int(payload.get("day_count") or 0)
+            daily_minutes_required = int(payload.get("daily_minutes_required") or 0)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Kunlar soni va daqiqa butun son bo'lishi kerak")
+
+        if not title or not book_title or not book_text:
+            raise HTTPException(status_code=400, detail="Sarlavha, kitob nomi va matni majburiy")
+        if day_count < 1 or daily_minutes_required < 1:
+            raise HTTPException(
+                status_code=400, detail="Kunlar soni va kunlik daqiqa 1 dan katta bo'lishi kerak"
+            )
+        try:
+            start_date = date_type.fromisoformat((payload.get("start_date") or "").strip())
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Boshlanish sanasi noto'g'ri (YYYY-MM-DD)")
+
+        campaign = await MarraCampaignRepo(session).create(
+            title=title,
+            description=(payload.get("description") or "").strip() or None,
+            prize_text=(payload.get("prize_text") or "").strip() or None,
+            book_title=book_title,
+            book_text=book_text,
+            day_count=day_count,
+            daily_minutes_required=daily_minutes_required,
+            start_date=start_date,
+        )
+        await session.commit()
+        return _marra2_campaign_summary(campaign)
+
+
+@app.patch("/api/admin/marra2/campaigns/{campaign_id}")
+async def marra2_toggle_campaign(
+    campaign_id: int, payload: dict = Body(...), x_telegram_init_data: str = Header(default="")
+) -> dict:
+    async with async_session_factory() as session:
+        await _require_admin(x_telegram_init_data, session)
+        campaign_repo = MarraCampaignRepo(session)
+        campaign = await campaign_repo.get_by_id(campaign_id)
+        if campaign is None:
+            raise HTTPException(status_code=404, detail="Kampaniya topilmadi")
+
+        if "is_active" in payload:
+            await campaign_repo.set_active(campaign, bool(payload["is_active"]))
+        await session.commit()
+        return _marra2_campaign_summary(campaign)
+
+
+@app.get("/api/admin/marra2/campaigns/{campaign_id}/participants")
+async def marra2_campaign_participants(
+    campaign_id: int, x_telegram_init_data: str = Header(default="")
+) -> dict:
+    async with async_session_factory() as session:
+        await _require_admin(x_telegram_init_data, session)
+        campaign = await MarraCampaignRepo(session).get_by_id(campaign_id)
+        if campaign is None:
+            raise HTTPException(status_code=404, detail="Kampaniya topilmadi")
+
+        participant_repo = MarraParticipantRepo(session)
+        progress_repo = MarraProgressRepo(session)
+        user_repo = UserRepo(session)
+
+        today_day = _marra2_day_number(campaign, datetime.now(TASHKENT_TZ).date())
+        rows = []
+        for participant in await participant_repo.list_by_campaign(campaign_id):
+            user = await user_repo.get_by_id(participant.user_id)
+            progress_list = await progress_repo.list_by_participant(participant.id)
+            rows.append(
+                {
+                    "user_id": participant.user_id,
+                    "name": user.first_name if user else "?",
+                    "username": user.username if user else None,
+                    "joined_at": participant.joined_at.isoformat(),
+                    "is_eliminated": participant.is_eliminated,
+                    "eliminated_on_day": participant.eliminated_on_day,
+                    "completed_days": sorted(p.day_number for p in progress_list if p.completed),
+                }
+            )
+
+        return {
+            "campaign": _marra2_campaign_summary(campaign),
+            "today_day_number": today_day,
+            "participants": rows,
+        }
+
+
+@app.get("/api/marra2/campaigns/{campaign_id}")
+async def marra2_campaign_detail(
+    campaign_id: int, init_data: str = Query(default="")
+) -> dict:
+    async with async_session_factory() as session:
+        tg_user = await _require_admin(init_data, session)
+        campaign = await MarraCampaignRepo(session).get_by_id(campaign_id)
+        if campaign is None or not campaign.is_active:
+            raise HTTPException(status_code=404, detail="Marra topilmadi")
+
+        user = await UserRepo(session).get_by_tg_id(tg_user["id"])
+        if user is None:
+            raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+        participant = await MarraParticipantRepo(session).get(campaign_id, user.id)
+        today_day = _marra2_day_number(campaign, datetime.now(TASHKENT_TZ).date())
+
+        progress_today = None
+        if participant is not None and 1 <= today_day <= campaign.day_count:
+            progress_today = await MarraProgressRepo(session).get(participant.id, today_day)
+
+        result = _marra2_campaign_summary(campaign)
+        result["book_text"] = campaign.book_text
+        result["today_day_number"] = today_day
+        result["joined"] = participant is not None
+        result["is_eliminated"] = participant.is_eliminated if participant else False
+        result["seconds_read_today"] = progress_today.seconds_read if progress_today else 0
+        result["required_seconds"] = campaign.daily_minutes_required * 60
+        result["completed_today"] = progress_today.completed if progress_today else False
+        return result
+
+
+@app.post("/api/marra2/campaigns/{campaign_id}/join")
+async def marra2_join_campaign(
+    campaign_id: int, x_telegram_init_data: str = Header(default="")
+) -> dict:
+    async with async_session_factory() as session:
+        tg_user = await _require_admin(x_telegram_init_data, session)
+        campaign = await MarraCampaignRepo(session).get_by_id(campaign_id)
+        if campaign is None or not campaign.is_active:
+            raise HTTPException(status_code=404, detail="Marra topilmadi")
+
+        user = await UserRepo(session).get_by_tg_id(tg_user["id"])
+        if user is None:
+            raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+        participant_repo = MarraParticipantRepo(session)
+        participant = await participant_repo.get(campaign_id, user.id)
+        if participant is None:
+            await participant_repo.join(campaign_id, user.id)
+            await session.commit()
+        return {"ok": True}
+
+
+@app.post("/api/marra2/campaigns/{campaign_id}/heartbeat")
+async def marra2_heartbeat(
+    campaign_id: int, payload: dict = Body(...), x_telegram_init_data: str = Header(default="")
+) -> dict:
+    """Kitob sahifasi ochiq va faol (brauzer tab ko'rinib turgan) paytda
+    frontend har necha soniyada shu yerga soniya yuboradi - shu tariqa
+    o'qish vaqti avtomatik, Mutolaa'dagi kabi hisoblanadi. Diqqat: hozircha
+    bu faqat admin sinovi uchun, chin anti-fraud (masalan so'nggi heartbeat
+    vaqtidan oshib ketishni tekshirish) ommaga chiqarishdan oldin qo'shilishi
+    kerak."""
+    try:
+        seconds = int(payload.get("seconds") or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Noto'g'ri qiymat")
+    if not (0 < seconds <= 30):
+        raise HTTPException(status_code=400, detail="Noto'g'ri qiymat")
+
+    async with async_session_factory() as session:
+        tg_user = await _require_admin(x_telegram_init_data, session)
+        campaign = await MarraCampaignRepo(session).get_by_id(campaign_id)
+        if campaign is None or not campaign.is_active:
+            raise HTTPException(status_code=404, detail="Marra topilmadi")
+
+        user = await UserRepo(session).get_by_tg_id(tg_user["id"])
+        if user is None:
+            raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+        participant_repo = MarraParticipantRepo(session)
+        participant = await participant_repo.get(campaign_id, user.id)
+        if participant is None:
+            raise HTTPException(status_code=403, detail="Avval marraga qo'shiling")
+        if participant.is_eliminated:
+            raise HTTPException(status_code=403, detail="Siz marradan chiqarilgansiz")
+
+        today_day = _marra2_day_number(campaign, datetime.now(TASHKENT_TZ).date())
+        if not (1 <= today_day <= campaign.day_count):
+            raise HTTPException(status_code=400, detail="Marra kunlari doirasidan tashqari")
+
+        progress_repo = MarraProgressRepo(session)
+        progress = await progress_repo.get_or_create(participant.id, today_day)
+        await progress_repo.add_seconds(progress, seconds, campaign.daily_minutes_required)
+        await session.commit()
+
+        return {
+            "seconds_read": progress.seconds_read,
+            "required_seconds": campaign.daily_minutes_required * 60,
+            "completed": progress.completed,
         }

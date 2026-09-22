@@ -4,6 +4,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from bot.jobs.link_expiry import expire_stale_links_job
+from bot.jobs.marra2_elimination import eliminate_marra2_stragglers_job
 from bot.jobs.marra_reminder import send_marra_reminders_job
 
 scheduler = AsyncIOScheduler(timezone="Asia/Tashkent")
@@ -23,5 +24,11 @@ def setup_jobs(bot: Bot) -> None:
         trigger=CronTrigger(minute=0),
         args=[bot],
         id="send_marra_reminders",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        eliminate_marra2_stragglers_job,
+        trigger=CronTrigger(hour=0, minute=5),
+        id="eliminate_marra2_stragglers",
         replace_existing=True,
     )
