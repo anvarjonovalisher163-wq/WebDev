@@ -19,6 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from bot.config import settings
 from bot.db.session import async_session_factory
 from bot.models.marra_campaign import MarraCampaign
+from bot.models.referral import ReferralStatus
 from bot.repositories.admin_repo import AdminRepo
 from bot.repositories.auth_flow_repo import (
     MAX_OTP_ATTEMPTS,
@@ -710,19 +711,24 @@ async def admin_user_referrals(
             raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
 
         active_season = await SeasonRepo(session).get_active()
-        referrals = await ReferralRepo(session).list_by_referrer_in_season(
-            target.id, active_season.id
-        )
+        referral_repo = ReferralRepo(session)
+        referrals = await referral_repo.list_by_referrer_in_season(target.id, active_season.id)
 
         items = []
         for referral in referrals:
             referred = await user_repo.get_by_id(referral.referred_id)
+            referred_count = 0
+            if referred is not None:
+                referred_count = await referral_repo.count_by_referrer_and_status_in_season(
+                    referred.id, ReferralStatus.APPROVED, active_season.id
+                )
             items.append(
                 {
                     "name": referred.first_name if referred else "?",
                     "username": referred.username if referred else None,
                     "tg_id": referred.tg_id if referred else None,
                     "status": referral.status.value,
+                    "referred_count": referred_count,
                 }
             )
 
