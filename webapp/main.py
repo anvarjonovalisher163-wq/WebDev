@@ -8,7 +8,7 @@ from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, urlencode
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -20,12 +20,19 @@ from bot.config import settings
 from bot.db.session import async_session_factory
 from bot.models.marra_campaign import MarraCampaign
 from bot.repositories.admin_repo import AdminRepo
+from bot.repositories.auth_flow_repo import (
+    MAX_OTP_ATTEMPTS,
+    OAUTH_STATE_TTL_MINUTES,
+    OTP_TTL_MINUTES,
+    AuthFlowRepo,
+)
 from bot.repositories.marra_campaign_repo import MarraCampaignRepo
 from bot.repositories.marra_participant_repo import MarraParticipantRepo
 from bot.repositories.marra_progress_repo import MarraProgressRepo
 from bot.repositories.referral_repo import ReferralRepo
 from bot.repositories.season_repo import SeasonRepo
 from bot.repositories.settings_repo import SettingsRepo
+from bot.repositories.user_identity_repo import UserIdentityRepo
 from bot.repositories.user_repo import UserRepo
 from bot.repositories.web_session_repo import (
     SESSION_TTL_DAYS,
@@ -39,8 +46,10 @@ from bot.services.certificate_service import (
     DEFAULT_CERTIFICATE_SUBTITLE,
     render_certificate_png,
 )
+from bot.services.email_service import send_login_code_email
 from bot.services.referral_service import ReferralService
 from bot.services.season_service import SeasonService
+from bot.services.sms_service import send_otp_sms
 from bot.services.subscription_service import SubscriptionService
 
 TASHKENT_TZ = ZoneInfo("Asia/Tashkent")
@@ -267,11 +276,14 @@ def _verify_telegram_login_widget(params: dict) -> Optional[dict]:
 async def web_login(t: Optional[str] = Query(default=None)) -> Response:
     """`t` bilan - bot /webapp orqali bergan bir martalik tokenni tekshiradi
     va sessiya o'rnatadi (eski oqim). `t`siz - Mutolaa uslubidagi to'liq
-    login sahifasini ko'rsatadi (Telegram, Google, Apple, telefon, email)."""
+    login sahifasini ko'rsatadi (Telegram, Google, telefon, email)."""
     if t is None:
         bot_username = await _get_bot_username()
         html = (STATIC_DIR / "login.html").read_text(encoding="utf-8")
         html = html.replace("{{BOT_USERNAME}}", bot_username)
+        html = html.replace("{{GOOGLE_ENABLED}}", "true" if settings.google_oauth_configured else "false")
+        html = html.replace("{{EMAIL_ENABLED}}", "true" if settings.smtp_configured else "false")
+        html = html.replace("{{PHONE_ENABLED}}", "true" if settings.eskiz_configured else "false")
         return Response(content=html, media_type="text/html")
 
     token_hash = hashlib.sha256(t.encode()).hexdigest()
@@ -318,6 +330,235 @@ async def telegram_login_callback(request: Request) -> RedirectResponse:
 
         session_token = await _issue_web_session(session, user.id)
         await session.commit()
+
+    response = RedirectResponse(url=next_path)
+    _set_session_cookie(response, session_token)
+    return response
+
+
+async def _current_internal_user_id(request: Request, session) -> Optional[int]:
+    """Hozir link qilinayotgan email/telefon/Google qaysi hisobga
+    biriktirilishi kerakligini aniqlaydi - faqat allaqachon (cookie orqali)
+    kirgan foydalanuvchi uchun ishlaydi, aks holda None."""
+    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not cookie_token:
+        return None
+    token_hash = hashlib.sha256(cookie_token.encode()).hexdigest()
+    web_session = await WebSessionRepo(session).get_valid(token_hash)
+    return web_session.user_id if web_session else None
+
+
+async def _verify_otp_and_login(kind: str, provider: str, address: str, code: str) -> str:
+    """OTP kodni tekshiradi va mos hisob bilan (allaqachon bog'langan bo'lsa)
+    kirishni, yoki (link so'ralgan bo'lsa) yangi bog'lashni amalga oshiradi.
+    Muvaffaqiyatli bo'lsa yangi sessiya tokenini qaytaradi."""
+    async with async_session_factory() as session:
+        auth_repo = AuthFlowRepo(session)
+        state = await auth_repo.get_active_by_address(kind, address)
+        if state is None:
+            raise HTTPException(status_code=400, detail="Kod eskirgan, qaytadan so'rang")
+        if state.attempts >= MAX_OTP_ATTEMPTS:
+            raise HTTPException(status_code=429, detail="Urinishlar soni tugadi, qaytadan so'rang")
+
+        code_hash = hashlib.sha256(code.encode()).hexdigest()
+        if not hmac.compare_digest(state.token_hash, code_hash):
+            await auth_repo.increment_attempts(state)
+            await session.commit()
+            raise HTTPException(status_code=400, detail="Kod noto'g'ri")
+
+        await auth_repo.mark_used(state)
+
+        identity_repo = UserIdentityRepo(session)
+        identity = await identity_repo.get(provider, address)
+        if identity is not None:
+            user_id = identity.user_id
+        elif state.linking_user_id is not None:
+            await identity_repo.link(state.linking_user_id, provider, address)
+            user_id = state.linking_user_id
+        else:
+            await session.commit()
+            label = "email" if provider == "email" else "raqam"
+            raise HTTPException(
+                status_code=404,
+                detail=f"Bu {label} hech qaysi hisobga bog'lanmagan. Avval Telegram orqali kiring.",
+            )
+
+        session_token = await _issue_web_session(session, user_id)
+        await session.commit()
+        return session_token
+
+
+@app.post("/auth/email/request")
+async def email_login_request(request: Request, payload: dict = Body(...)) -> dict:
+    email = (payload.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Email noto'g'ri")
+    if not settings.smtp_configured:
+        raise HTTPException(status_code=503, detail="Email orqali kirish hali sozlanmagan")
+
+    async with async_session_factory() as session:
+        linking_user_id = await _current_internal_user_id(request, session)
+        code = f"{secrets.randbelow(1000000):06d}"
+        code_hash = hashlib.sha256(code.encode()).hexdigest()
+        await AuthFlowRepo(session).create(
+            kind="otp_email",
+            token_hash=code_hash,
+            address=email,
+            linking_user_id=linking_user_id,
+            ttl_minutes=OTP_TTL_MINUTES,
+        )
+        await session.commit()
+
+    if not await send_login_code_email(email, code):
+        raise HTTPException(status_code=502, detail="Email yuborib bo'lmadi")
+    return {"ok": True}
+
+
+@app.post("/auth/email/verify")
+async def email_login_verify(payload: dict = Body(...)) -> Response:
+    email = (payload.get("email") or "").strip().lower()
+    code = (payload.get("code") or "").strip()
+    if not email or not code:
+        raise HTTPException(status_code=400, detail="Email va kod kerak")
+
+    session_token = await _verify_otp_and_login("otp_email", "email", email, code)
+    response = Response(content='{"ok": true}', media_type="application/json")
+    _set_session_cookie(response, session_token)
+    return response
+
+
+@app.post("/auth/phone/request")
+async def phone_login_request(request: Request, payload: dict = Body(...)) -> dict:
+    phone = (payload.get("phone") or "").strip()
+    if not phone.startswith("+") or len(phone) < 9:
+        raise HTTPException(status_code=400, detail="Telefon raqam noto'g'ri (masalan: +998901234567)")
+    if not settings.eskiz_configured:
+        raise HTTPException(status_code=503, detail="Telefon orqali kirish hali sozlanmagan")
+
+    async with async_session_factory() as session:
+        linking_user_id = await _current_internal_user_id(request, session)
+        code = f"{secrets.randbelow(1000000):06d}"
+        code_hash = hashlib.sha256(code.encode()).hexdigest()
+        await AuthFlowRepo(session).create(
+            kind="otp_phone",
+            token_hash=code_hash,
+            address=phone,
+            linking_user_id=linking_user_id,
+            ttl_minutes=OTP_TTL_MINUTES,
+        )
+        await session.commit()
+
+    if not await send_otp_sms(phone, code):
+        raise HTTPException(status_code=502, detail="SMS yuborib bo'lmadi")
+    return {"ok": True}
+
+
+@app.post("/auth/phone/verify")
+async def phone_login_verify(payload: dict = Body(...)) -> Response:
+    phone = (payload.get("phone") or "").strip()
+    code = (payload.get("code") or "").strip()
+    if not phone or not code:
+        raise HTTPException(status_code=400, detail="Telefon va kod kerak")
+
+    session_token = await _verify_otp_and_login("otp_phone", "phone", phone, code)
+    response = Response(content='{"ok": true}', media_type="application/json")
+    _set_session_cookie(response, session_token)
+    return response
+
+
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
+
+
+@app.get("/auth/google/start")
+async def google_login_start(request: Request, next: str = Query(default="/")) -> RedirectResponse:
+    if not settings.google_oauth_configured:
+        raise HTTPException(status_code=503, detail="Google orqali kirish hali sozlanmagan")
+
+    async with async_session_factory() as session:
+        linking_user_id = await _current_internal_user_id(request, session)
+        state_value = secrets.token_urlsafe(24)
+        state_hash = hashlib.sha256(state_value.encode()).hexdigest()
+        await AuthFlowRepo(session).create(
+            kind="oauth_google",
+            token_hash=state_hash,
+            linking_user_id=linking_user_id,
+            next_path=_safe_next_path(next),
+            ttl_minutes=OAUTH_STATE_TTL_MINUTES,
+        )
+        await session.commit()
+
+    redirect_uri = f"{settings.webapp_url}/auth/google/callback"
+    query = {
+        "client_id": settings.google_client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state_value,
+        "prompt": "select_account",
+    }
+    return RedirectResponse(url=f"{GOOGLE_AUTH_URL}?{urlencode(query)}")
+
+
+@app.get("/auth/google/callback")
+async def google_login_callback(
+    code: str = Query(default=""), state: str = Query(default=""), error: str = Query(default="")
+) -> RedirectResponse:
+    if error or not code or not state:
+        return RedirectResponse(url="/login?error=google_failed")
+
+    state_hash = hashlib.sha256(state.encode()).hexdigest()
+    async with async_session_factory() as session:
+        auth_repo = AuthFlowRepo(session)
+        flow_state = await auth_repo.get_valid("oauth_google", state_hash)
+        if flow_state is None:
+            return RedirectResponse(url="/login?error=google_failed")
+        await auth_repo.mark_used(flow_state)
+
+        redirect_uri = f"{settings.webapp_url}/auth/google/callback"
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                token_resp = await client.post(
+                    GOOGLE_TOKEN_URL,
+                    data={
+                        "code": code,
+                        "client_id": settings.google_client_id,
+                        "client_secret": settings.google_client_secret,
+                        "redirect_uri": redirect_uri,
+                        "grant_type": "authorization_code",
+                    },
+                )
+                token_data = token_resp.json()
+                access_token = token_data.get("access_token")
+                if not access_token:
+                    return RedirectResponse(url="/login?error=google_failed")
+
+                userinfo_resp = await client.get(
+                    GOOGLE_USERINFO_URL, headers={"Authorization": f"Bearer {access_token}"}
+                )
+                userinfo = userinfo_resp.json()
+        except httpx.HTTPError:
+            return RedirectResponse(url="/login?error=google_failed")
+
+        google_sub = userinfo.get("sub")
+        if not google_sub:
+            return RedirectResponse(url="/login?error=google_failed")
+
+        identity_repo = UserIdentityRepo(session)
+        identity = await identity_repo.get("google", google_sub)
+        if identity is not None:
+            user_id = identity.user_id
+        elif flow_state.linking_user_id is not None:
+            await identity_repo.link(flow_state.linking_user_id, "google", google_sub)
+            user_id = flow_state.linking_user_id
+        else:
+            await session.commit()
+            return RedirectResponse(url="/login?error=start_bot_first")
+
+        session_token = await _issue_web_session(session, user_id)
+        await session.commit()
+        next_path = flow_state.next_path or "/"
 
     response = RedirectResponse(url=next_path)
     _set_session_cookie(response, session_token)

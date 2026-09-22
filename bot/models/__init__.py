@@ -8,6 +8,7 @@ from bot.models.referral import Referral, ReferralStatus
 from bot.models.season import Season
 from bot.models.settings import BotSettings
 from bot.models.user import User
+from bot.models.user_identity import AuthFlowState, UserIdentity
 from bot.models.web_session import WebLoginToken, WebSession
 
 __all__ = [
@@ -27,4 +28,6 @@ __all__ = [
     "MarraDailyProgress",
     "WebLoginToken",
     "WebSession",
+    "UserIdentity",
+    "AuthFlowState",
 ]

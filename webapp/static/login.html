@@ -10,7 +10,7 @@
 <style>
   :root {
     --bg: #f4f7fb; --card-bg: #ffffff; --text: #101a2e; --hint: rgba(20,30,55,0.6);
-    --navy: #071944; --accent: #2a78c8; --border: #e2e7f0;
+    --navy: #071944; --accent: #2a78c8; --border: #e2e7f0; --green: #1a9e5c; --red: #d0473b;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #0c1220; --card-bg: #151c30; --text: #f2f6ff; --hint: rgba(220,230,250,0.65); --border: #26304a; }
@@ -22,7 +22,7 @@
   .box { width: 100%; max-width: 360px; text-align: center; }
   .logo { font-size: 40px; margin-bottom: 8px; }
   h1 { font-size: 20px; margin: 0 0 6px; }
-  .hint { color: var(--hint); font-size: 13px; margin: 0 0 28px; }
+  .hint { color: var(--hint); font-size: 13px; margin: 0 0 20px; }
 
   .btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
     padding: 13px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg);
@@ -32,9 +32,24 @@
 
   #tg-widget-wrap { display: flex; justify-content: center; margin-bottom: 10px; }
 
-  .error { background: rgba(208,71,59,0.12); color: #d0473b; border-radius: 10px; padding: 10px 12px;
-    font-size: 13px; margin-bottom: 16px; display: none; }
+  .error { background: rgba(208,71,59,0.12); color: var(--red); border-radius: 10px; padding: 10px 12px;
+    font-size: 13px; margin-bottom: 16px; display: none; text-align: left; }
+  .ok-msg { background: rgba(26,158,92,0.12); color: var(--green); border-radius: 10px; padding: 10px 12px;
+    font-size: 13px; margin-bottom: 16px; display: none; text-align: left; }
   .terms { font-size: 11px; color: var(--hint); margin-top: 20px; }
+
+  .panel { display: none; text-align: left; border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; margin-bottom: 10px; background: var(--card-bg); }
+  .panel.open { display: block; }
+  .panel label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .panel input { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    font-size: 15px; background: transparent; color: var(--text); font-family: inherit; margin-bottom: 10px; }
+  .panel input:focus { outline: none; border-color: var(--accent); }
+  .panel .row2 { display: flex; gap: 8px; }
+  .panel .row2 button { flex: 1; padding: 11px; border-radius: 10px; border: none; font-weight: 600;
+    font-size: 13px; cursor: pointer; }
+  .panel .send-btn { background: var(--navy); color: #fff; }
+  .panel .cancel-btn { background: transparent; border: 1px solid var(--border) !important; color: var(--hint); }
 </style>
 </head>
 <body>
@@ -45,29 +60,87 @@
   <p class="hint">Kirish uchun quyidagilardan birini tanlang.</p>
 
   <div class="error" id="error-box"></div>
+  <div class="ok-msg" id="ok-box"></div>
 
   <div id="tg-widget-wrap"></div>
 
-  <button class="btn soon" disabled>🔵 Google</button>
-  <button class="btn soon" disabled>🍎 Apple</button>
-  <button class="btn soon" disabled>📞 Telefon raqam</button>
-  <button class="btn soon" disabled>✉️ Elektron pochta</button>
+  <button class="btn" id="btn-google">🔵 Google</button>
 
-  <p class="terms">Davom etish orqali siz botdan avval /start bosgan bo'lishingiz kerak.</p>
+  <button class="btn" id="btn-open-email">✉️ Elektron pochta</button>
+  <div class="panel" id="panel-email">
+    <div id="email-step-1">
+      <label>Elektron pochta manzilingiz</label>
+      <input type="email" id="email-input" placeholder="siz@example.com" />
+      <div class="row2">
+        <button class="send-btn" id="email-send">Kod yuborish</button>
+        <button class="cancel-btn" data-close="panel-email">Bekor qilish</button>
+      </div>
+    </div>
+    <div id="email-step-2" style="display:none;">
+      <label>Emailingizga yuborilgan 6 xonali kod</label>
+      <input type="text" id="email-code-input" inputmode="numeric" maxlength="6" placeholder="000000" />
+      <div class="row2">
+        <button class="send-btn" id="email-verify">Kirish</button>
+        <button class="cancel-btn" data-close="panel-email">Bekor qilish</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn" id="btn-open-phone">📞 Telefon raqam</button>
+  <div class="panel" id="panel-phone">
+    <div id="phone-step-1">
+      <label>Telefon raqamingiz</label>
+      <input type="tel" id="phone-input" placeholder="+998901234567" />
+      <div class="row2">
+        <button class="send-btn" id="phone-send">Kod yuborish</button>
+        <button class="cancel-btn" data-close="panel-phone">Bekor qilish</button>
+      </div>
+    </div>
+    <div id="phone-step-2" style="display:none;">
+      <label>SMS orqali kelgan 6 xonali kod</label>
+      <input type="text" id="phone-code-input" inputmode="numeric" maxlength="6" placeholder="000000" />
+      <div class="row2">
+        <button class="send-btn" id="phone-verify">Kirish</button>
+        <button class="cancel-btn" data-close="panel-phone">Bekor qilish</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="terms">Google/email/telefon - faqat avval Telegram orqali kirgan hisobingizga qo'shimcha kirish yo'li sifatida bog'lanadi.</p>
 </div>
 
 <script>
+  const GOOGLE_ENABLED = {{GOOGLE_ENABLED}};
+  const EMAIL_ENABLED = {{EMAIL_ENABLED}};
+  const PHONE_ENABLED = {{PHONE_ENABLED}};
+
   const params = new URLSearchParams(window.location.search);
-  const err = params.get("error");
-  if (err === "start_bot_first") {
-    const box = document.getElementById("error-box");
-    box.textContent = "Avval Telegram botga o'tib /start bosing, keyin shu sahifaga qayting.";
-    box.style.display = "block";
+  const nextPath = params.get("next") || "/";
+
+  const errorBox = document.getElementById("error-box");
+  const okBox = document.getElementById("ok-box");
+
+  function showError(text) {
+    okBox.style.display = "none";
+    errorBox.textContent = text;
+    errorBox.style.display = "block";
+  }
+  function showOk(text) {
+    errorBox.style.display = "none";
+    okBox.textContent = text;
+    okBox.style.display = "block";
   }
 
+  const err = params.get("error");
+  if (err === "start_bot_first") {
+    showError("Bu email/telefon/Google hisobi hali hech qaysi UCHQUN hisobiga bog'lanmagan. Avval Telegram botga o'tib /start bosing, so'ng shu sahifadan Telegram tugmasi orqali kiring.");
+  } else if (err === "google_failed") {
+    showError("Google orqali kirishda xatolik yuz berdi. Qaytadan urinib ko'ring.");
+  }
+
+  // --- Telegram Login Widget ---
   const botUsername = "{{BOT_USERNAME}}";
   if (botUsername) {
-    const nextPath = params.get("next") || "/";
     const authUrl = window.location.origin + "/auth/telegram/callback?next=" + encodeURIComponent(nextPath);
     const script = document.createElement("script");
     script.src = "https://telegram.org/js/telegram-widget.js?22";
@@ -78,6 +151,102 @@
     script.setAttribute("data-auth-url", authUrl);
     script.setAttribute("data-request-access", "write");
     document.getElementById("tg-widget-wrap").appendChild(script);
+  }
+
+  // --- Google ---
+  const googleBtn = document.getElementById("btn-google");
+  if (GOOGLE_ENABLED) {
+    googleBtn.addEventListener("click", () => {
+      window.location.href = "/auth/google/start?next=" + encodeURIComponent(nextPath);
+    });
+  } else {
+    googleBtn.classList.add("soon");
+    googleBtn.disabled = true;
+  }
+
+  // --- Panel ochish/yopish ---
+  function openPanel(id) {
+    document.querySelectorAll(".panel").forEach((p) => p.classList.remove("open"));
+    document.getElementById(id).classList.add("open");
+  }
+  document.querySelectorAll("[data-close]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.getElementById(btn.dataset.close).classList.remove("open");
+    });
+  });
+
+  async function postJson(url, body) {
+    const res = await fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || `Xatolik (${res.status})`);
+    return data;
+  }
+
+  // --- Email ---
+  const emailOpenBtn = document.getElementById("btn-open-email");
+  if (EMAIL_ENABLED) {
+    emailOpenBtn.addEventListener("click", () => openPanel("panel-email"));
+    document.getElementById("email-send").addEventListener("click", async () => {
+      const email = document.getElementById("email-input").value.trim();
+      if (!email) return;
+      try {
+        await postJson("/auth/email/request", { email });
+        document.getElementById("email-step-1").style.display = "none";
+        document.getElementById("email-step-2").style.display = "block";
+        showOk("Kod emailingizga yuborildi.");
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+    document.getElementById("email-verify").addEventListener("click", async () => {
+      const email = document.getElementById("email-input").value.trim();
+      const code = document.getElementById("email-code-input").value.trim();
+      try {
+        await postJson("/auth/email/verify", { email, code });
+        window.location.href = nextPath;
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+  } else {
+    emailOpenBtn.classList.add("soon");
+    emailOpenBtn.disabled = true;
+  }
+
+  // --- Telefon ---
+  const phoneOpenBtn = document.getElementById("btn-open-phone");
+  if (PHONE_ENABLED) {
+    phoneOpenBtn.addEventListener("click", () => openPanel("panel-phone"));
+    document.getElementById("phone-send").addEventListener("click", async () => {
+      const phone = document.getElementById("phone-input").value.trim();
+      if (!phone) return;
+      try {
+        await postJson("/auth/phone/request", { phone });
+        document.getElementById("phone-step-1").style.display = "none";
+        document.getElementById("phone-step-2").style.display = "block";
+        showOk("Kod SMS orqali yuborildi.");
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+    document.getElementById("phone-verify").addEventListener("click", async () => {
+      const phone = document.getElementById("phone-input").value.trim();
+      const code = document.getElementById("phone-code-input").value.trim();
+      try {
+        await postJson("/auth/phone/verify", { phone, code });
+        window.location.href = nextPath;
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+  } else {
+    phoneOpenBtn.classList.add("soon");
+    phoneOpenBtn.disabled = true;
   }
 </script>
 
