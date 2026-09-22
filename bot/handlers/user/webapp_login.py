@@ -3,7 +3,7 @@ import secrets
 
 from aiogram import Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import LinkPreviewOptions, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.config import settings as app_settings
@@ -40,5 +40,9 @@ async def cmd_webapp_login(message: Message, session: AsyncSession) -> None:
         f"({LOGIN_TOKEN_TTL_MINUTES} daqiqa ichida, faqat bir marta ishlaydi):\n\n"
         f"{login_url}\n\n"
         "Ochilgandan keyin brauzeringiz \"Bosh ekranga qo'shish\" orqali "
-        "ilova sifatida o'rnatib olishingiz mumkin."
+        "ilova sifatida o'rnatib olishingiz mumkin.",
+        # Telegram havola preview yaratish uchun uni o'zi bir marta "ochib
+        # ko'radi" - bu bizning bir martalik tokenni foydalanuvchi bosishdan
+        # OLDIN sarflab qo'yardi. Shuning uchun preview o'chirilgan.
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
