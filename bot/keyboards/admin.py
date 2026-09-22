@@ -46,8 +46,8 @@ CB_ADMIN_SEASON_END_PROMPT = "admin:season_end_prompt"
 CB_ADMIN_SEASON_END_CONFIRM = "admin:season_end_confirm"
 
 CB_ADMIN_CERTIFICATES = "admin:certificates"
-CB_ADMIN_CERT_ISSUE_PROMPT = "admin:cert_issue_prompt"
-CB_ADMIN_CERT_ISSUE_CONFIRM = "admin:cert_issue_confirm"
+CB_ADMIN_CERT_ROSTER = "admin:cert_roster"
+CB_ADMIN_CERT_ROSTER_CONFIRM = "admin:cert_roster_confirm"
 
 CB_ADMIN_MARRA = "admin:marra"
 CB_ADMIN_MARRA_SET_URL = "admin:marra_set_url"
@@ -224,25 +224,23 @@ def season_end_confirm_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def certificates_menu_keyboard(ready_count: int) -> InlineKeyboardMarkup:
-    rows = []
-    if ready_count > 0:
-        rows.append(
-            [
-                InlineKeyboardButton(
-                    text=f"🎓 Sertifikatlarni berish ({ready_count})",
-                    callback_data=CB_ADMIN_CERT_ISSUE_PROMPT,
-                )
-            ]
-        )
-    rows.append([InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
-
-
-def certificates_issue_confirm_keyboard() -> InlineKeyboardMarkup:
+def certificates_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✅ Ha, yuborish", callback_data=CB_ADMIN_CERT_ISSUE_CONFIRM)],
+            [
+                InlineKeyboardButton(
+                    text="📜 Sertifikat ro'yxatini tuzish", callback_data=CB_ADMIN_CERT_ROSTER
+                )
+            ],
+            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data=CB_ADMIN_BACK)],
+        ]
+    )
+
+
+def cert_roster_confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Yuborish", callback_data=CB_ADMIN_CERT_ROSTER_CONFIRM)],
             [InlineKeyboardButton(text="❌ Bekor qilish", callback_data=CB_ADMIN_CERTIFICATES)],
         ]
     )

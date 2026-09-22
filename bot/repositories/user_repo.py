@@ -99,11 +99,11 @@ class UserRepo:
         )
         return result.scalar_one()
 
-    async def list_ready_for_certificate(self) -> list[User]:
+    async def list_joined_private_channel_not_blocked(self) -> list[User]:
         result = await self.session.execute(
             select(User).where(
-                User.cert_full_name.is_not(None),
-                User.cert_issued_at.is_(None),
+                User.joined_private_channel.is_(True),
+                User.is_blocked.is_(False),
             )
         )
         return list(result.scalars().all())

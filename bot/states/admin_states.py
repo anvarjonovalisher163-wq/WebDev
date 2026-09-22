@@ -51,3 +51,8 @@ class MarraStates(StatesGroup):
     waiting_reminder_text = State()
     waiting_reminder_hour = State()
     waiting_duration_days = State()
+
+
+class CertRosterStates(StatesGroup):
+    waiting_message_text = State()
+    waiting_confirmation = State()
