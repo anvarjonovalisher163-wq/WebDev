@@ -44,6 +44,14 @@ class ReferralRepo:
         )
         return list(result.scalars().all())
 
+    async def list_by_referrer_in_season(self, referrer_id: int, season_id: int) -> list[Referral]:
+        result = await self.session.execute(
+            select(Referral)
+            .where(Referral.referrer_id == referrer_id, Referral.season_id == season_id)
+            .order_by(Referral.created_at.desc())
+        )
+        return list(result.scalars().all())
+
     async def count_by_referrer_and_status(self, referrer_id: int, status: ReferralStatus) -> int:
         result = await self.session.execute(
             select(func.count())

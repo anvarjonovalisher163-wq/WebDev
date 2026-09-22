@@ -649,6 +649,10 @@ async def leaderboard(
     tg_user = _verify_init_data(x_telegram_init_data)
 
     async with async_session_factory() as session:
+        is_admin = False
+        if tg_user:
+            is_admin = await AdminRepo(session).get_by_tg_id(tg_user["id"]) is not None
+
         active_season = await SeasonRepo(session).get_active()
         season_service = SeasonService(session)
         referral_repo = ReferralRepo(session)
@@ -687,7 +691,42 @@ async def leaderboard(
             "limit": limit,
             "entries": entries,
             "you": you,
+            "is_admin": is_admin,
         }
+
+
+@app.get("/api/admin/user-referrals/{tg_id}")
+async def admin_user_referrals(
+    tg_id: int, x_telegram_init_data: str = Header(default="")
+) -> dict:
+    """Admin - berilgan foydalanuvchi joriy mavsumda kimlarni taklif
+    qilganini (holati bilan) ko'rish uchun, reytingdagi profilga bosganda."""
+    async with async_session_factory() as session:
+        await _require_admin(x_telegram_init_data, session)
+
+        user_repo = UserRepo(session)
+        target = await user_repo.get_by_tg_id(tg_id)
+        if target is None:
+            raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+        active_season = await SeasonRepo(session).get_active()
+        referrals = await ReferralRepo(session).list_by_referrer_in_season(
+            target.id, active_season.id
+        )
+
+        items = []
+        for referral in referrals:
+            referred = await user_repo.get_by_id(referral.referred_id)
+            items.append(
+                {
+                    "name": referred.first_name if referred else "?",
+                    "username": referred.username if referred else None,
+                    "tg_id": referred.tg_id if referred else None,
+                    "status": referral.status.value,
+                }
+            )
+
+        return {"name": target.first_name, "referrals": items}
 
 
 @app.get("/api/my-stats")

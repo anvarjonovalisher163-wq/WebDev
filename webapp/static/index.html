@@ -164,6 +164,18 @@
   .rank-chip { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.4); }
   .rank-chip .l { font-size: 13px; font-weight: 700; color: var(--hint); }
   .rank-chip .v { font-size: 16px; font-weight: 900; color: var(--accent); }
+
+  /* Admin: profilga bosganda kimlarni taklif qilgani ochiladigan panel */
+  .row.clickable, .podium-slot.clickable { cursor: pointer; }
+  .referral-expand { padding: 6px 14px 12px 50px; font-size: 12.5px; }
+  .referral-expand .re-item { display: flex; align-items: center; gap: 6px; padding: 4px 0; color: var(--text); }
+  .referral-expand .re-item .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .referral-expand .re-item .dot.approved { background: #2e9e4f; }
+  .referral-expand .re-item .dot.pending { background: #c98a10; }
+  .referral-expand .re-item .dot.other { background: #999; }
+  .referral-expand .re-empty, .referral-expand .re-loading { color: var(--hint); font-size: 12.5px; padding: 4px 0; }
+  #podium-expand { margin: 10px 12px 0; border-radius: 18px; padding: 12px 14px; display: none; }
+  #podium-expand .re-title { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
 </style>
 </head>
 <body>
@@ -190,6 +202,7 @@
 
   <div id="panel-reyting">
     <div id="podium" class="podium"></div>
+    <div id="podium-expand" class="glass"></div>
     <div id="list" class="list glass"><div class="loading">Yuklanmoqda...</div></div>
   </div>
 
@@ -225,12 +238,87 @@
     let total = Infinity;
     let loading = false;
     let renderedFirstPage = false;
+    let isAdmin = false;
 
     async function fetchPage(nextOffset) {
       const headers = {};
       if (tg && tg.initData) headers["X-Telegram-Init-Data"] = tg.initData;
       const res = await fetch(`/api/leaderboard?offset=${nextOffset}&limit=${limit}`, { headers });
       return res.json();
+    }
+
+    // --- Admin: profilga bosganda kimlarni taklif qilgani ko'rsatish ---
+    const REFERRAL_STATUS_LABEL = {
+      approved: "tasdiqlangan",
+      pending: "kutilmoqda",
+      cancelled: "bekor qilingan",
+      fraud: "shubhali",
+      left_channels: "kanaldan chiqib ketgan",
+    };
+    const referralsCache = {};
+
+    async function fetchReferrals(tgId) {
+      if (referralsCache[tgId]) return referralsCache[tgId];
+      const headers = {};
+      if (tg && tg.initData) headers["X-Telegram-Init-Data"] = tg.initData;
+      const res = await fetch(`/api/admin/user-referrals/${tgId}`, { headers });
+      if (!res.ok) throw new Error("bad status");
+      const data = await res.json();
+      referralsCache[tgId] = data;
+      return data;
+    }
+
+    function referralsListHtml(data) {
+      if (!data.referrals.length) {
+        return '<div class="re-empty">Hali hech kimni taklif qilmagan.</div>';
+      }
+      return data.referrals
+        .map((r) => {
+          const dotClass = r.status === "approved" ? "approved" : r.status === "pending" ? "pending" : "other";
+          const label = REFERRAL_STATUS_LABEL[r.status] || r.status;
+          return `<div class="re-item"><span class="dot ${dotClass}"></span>${r.name}${r.username ? " @" + r.username : ""} - ${label}</div>`;
+        })
+        .join("");
+    }
+
+    async function toggleRowExpand(rowEl, tgId) {
+      const existing = rowEl.nextElementSibling;
+      if (existing && existing.classList.contains("referral-expand")) {
+        existing.remove();
+        return;
+      }
+      document.querySelectorAll(".referral-expand").forEach((el) => el.remove());
+
+      const expandEl = document.createElement("div");
+      expandEl.className = "referral-expand";
+      expandEl.innerHTML = '<div class="re-loading">Yuklanmoqda...</div>';
+      rowEl.after(expandEl);
+
+      try {
+        const data = await fetchReferrals(tgId);
+        expandEl.innerHTML = referralsListHtml(data);
+      } catch (e) {
+        expandEl.innerHTML = '<div class="re-empty">Yuklab bo\'lmadi.</div>';
+      }
+    }
+
+    async function togglePodiumExpand(tgId, name) {
+      const el = document.getElementById("podium-expand");
+      if (el.dataset.tgid === String(tgId) && el.style.display === "block") {
+        el.style.display = "none";
+        el.dataset.tgid = "";
+        return;
+      }
+      el.dataset.tgid = String(tgId);
+      el.style.display = "block";
+      el.innerHTML = `<div class="re-title">${name} taklif qilganlar</div><div class="re-loading">Yuklanmoqda...</div>`;
+
+      try {
+        const data = await fetchReferrals(tgId);
+        el.innerHTML = `<div class="re-title">${name} taklif qilganlar</div>${referralsListHtml(data)}`;
+      } catch (e) {
+        el.innerHTML = `<div class="re-title">${name} taklif qilganlar</div><div class="re-empty">Yuklab bo'lmadi.</div>`;
+      }
     }
 
     function renderPodium(entries) {
@@ -246,7 +334,7 @@
         const e = bySlot[rank];
         if (!e) { html += `<div class="podium-slot p${rank}"></div>`; return; }
         html += `
-          <div class="podium-slot p${rank}">
+          <div class="podium-slot p${rank}${isAdmin ? ' clickable' : ''}" ${isAdmin ? `data-tgid="${e.tg_id}" data-name="${e.name}"` : ''}>
             <div class="podium-avatar-wrap">
               ${rank === 1 ? '<div class="crown">👑</div>' : ''}
               ${avatarHtml(e.name, e.tg_id)}
@@ -257,6 +345,12 @@
         `;
       });
       podiumEl.innerHTML = html;
+
+      if (isAdmin) {
+        podiumEl.querySelectorAll(".podium-slot.clickable").forEach((slot) => {
+          slot.addEventListener("click", () => togglePodiumExpand(slot.dataset.tgid, slot.dataset.name));
+        });
+      }
     }
 
     function renderRows(entries, append) {
@@ -269,13 +363,14 @@
       }
       rest.forEach((e) => {
         const row = document.createElement("div");
-        row.className = "row" + (e.is_you ? " you-row" : "");
+        row.className = "row" + (e.is_you ? " you-row" : "") + (isAdmin ? " clickable" : "");
         row.innerHTML = `
           <div class="rank">${e.rank}</div>
           ${avatarHtml(e.name, e.tg_id)}
           <div class="name">${e.name}${e.is_you ? " (siz)" : ""}</div>
           <div class="count">${e.count} ta</div>
         `;
+        if (isAdmin) row.addEventListener("click", () => toggleRowExpand(row, e.tg_id));
         listEl.appendChild(row);
       });
     }
@@ -309,6 +404,7 @@
       try {
         const data = await fetchPage(offset);
         total = data.total;
+        isAdmin = !!data.is_admin;
         document.getElementById("season-label").textContent = `${data.season.name} · ${data.total} ishtirokchi`;
 
         if (!renderedFirstPage) {
