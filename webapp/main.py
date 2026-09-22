@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import io
 import json
+import secrets
 import time
 from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
@@ -11,8 +12,8 @@ from urllib.parse import parse_qsl
 from zoneinfo import ZoneInfo
 
 import httpx
-from fastapi import Body, FastAPI, Header, HTTPException, Query
-from fastapi.responses import FileResponse, Response
+from fastapi import Body, FastAPI, Header, HTTPException, Query, Request
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from bot.config import settings
@@ -26,6 +27,11 @@ from bot.repositories.referral_repo import ReferralRepo
 from bot.repositories.season_repo import SeasonRepo
 from bot.repositories.settings_repo import SettingsRepo
 from bot.repositories.user_repo import UserRepo
+from bot.repositories.web_session_repo import (
+    SESSION_TTL_DAYS,
+    WebLoginTokenRepo,
+    WebSessionRepo,
+)
 from bot.services.certificate_service import (
     DEFAULT_ACCEPTANCE_TEXT,
     DEFAULT_CERTIFICATE_BODY_TEXT,
@@ -38,6 +44,7 @@ from bot.services.season_service import SeasonService
 from bot.services.subscription_service import SubscriptionService
 
 TASHKENT_TZ = ZoneInfo("Asia/Tashkent")
+SESSION_COOKIE_NAME = "uchqun_session"
 
 INIT_DATA_MAX_AGE_SECONDS = 86400
 TELEGRAM_API = f"https://api.telegram.org/bot{settings.bot_token}"
@@ -159,14 +166,162 @@ async def marra2_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "marra2.html")
 
 
-async def _require_admin(init_data: str, session) -> dict:
+# Telegram ichida ochilganda initData orqali, Telegram'dan TASHQARIDA
+# (oddiy brauzer/PWA) ochilganda esa /login orqali o'rnatilgan sessiya
+# cookie orqali autentifikatsiya qilinadi. `request` berilmasa (eski
+# chaqiruvlar), faqat initData tekshiriladi - orqaga mos.
+async def _authenticate(init_data: str, session, request: Optional[Request] = None) -> Optional[dict]:
     tg_user = _verify_init_data(init_data)
+    if tg_user:
+        return tg_user
+    if request is None:
+        return None
+
+    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not cookie_token:
+        return None
+    token_hash = hashlib.sha256(cookie_token.encode()).hexdigest()
+    web_session = await WebSessionRepo(session).get_valid(token_hash)
+    if web_session is None:
+        return None
+
+    user = await UserRepo(session).get_by_id(web_session.user_id)
+    if user is None:
+        return None
+    return {"id": user.tg_id, "first_name": user.first_name, "username": user.username}
+
+
+async def _require_admin(init_data: str, session, request: Optional[Request] = None) -> dict:
+    tg_user = await _authenticate(init_data, session, request)
     if not tg_user:
         raise HTTPException(status_code=401, detail="Telegram orqali ochilishi kerak")
     admin = await AdminRepo(session).get_by_tg_id(tg_user["id"])
     if admin is None:
         raise HTTPException(status_code=403, detail="Sizda admin huquqi yo'q")
     return tg_user
+
+
+async def _issue_web_session(session, user_id: int) -> str:
+    """Foydalanuvchi uchun yangi uzoq muddatli veb-sessiya yaratadi va
+    brauzerga qo'yiladigan xom tokenni qaytaradi (bazada faqat hash saqlanadi)."""
+    session_token = secrets.token_urlsafe(32)
+    session_hash = hashlib.sha256(session_token.encode()).hexdigest()
+    await WebSessionRepo(session).create(user_id, session_hash)
+    return session_token
+
+
+def _set_session_cookie(response, session_token: str) -> None:
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_token,
+        max_age=SESSION_TTL_DAYS * 86400,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+
+
+_bot_username_cache: Optional[str] = None
+
+
+async def _get_bot_username() -> str:
+    global _bot_username_cache
+    if _bot_username_cache:
+        return _bot_username_cache
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{TELEGRAM_API}/getMe")
+            data = resp.json()
+    except httpx.HTTPError:
+        return ""
+    if data.get("ok"):
+        _bot_username_cache = data["result"]["username"]
+        return _bot_username_cache
+    return ""
+
+
+def _verify_telegram_login_widget(params: dict) -> Optional[dict]:
+    """Telegram Login Widget'ning rasmiy tekshiruv algoritmi - WebApp
+    initData'nikidan farqli: maxfiy kalit SHA256(bot_token), HMAC 'hash'
+    maydonisiz qolgan barcha maydonlardan hisoblanadi."""
+    received_hash = params.get("hash")
+    if not received_hash:
+        return None
+    check_pairs = {k: v for k, v in params.items() if k != "hash"}
+    data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(check_pairs.items()))
+    secret_key = hashlib.sha256(settings.bot_token.encode()).digest()
+    computed_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(computed_hash, received_hash):
+        return None
+    try:
+        auth_date = int(params.get("auth_date", "0"))
+    except ValueError:
+        return None
+    if time.time() - auth_date > INIT_DATA_MAX_AGE_SECONDS:
+        return None
+    return params
+
+
+@app.get("/login")
+async def web_login(t: Optional[str] = Query(default=None)) -> Response:
+    """`t` bilan - bot /webapp orqali bergan bir martalik tokenni tekshiradi
+    va sessiya o'rnatadi (eski oqim). `t`siz - Mutolaa uslubidagi to'liq
+    login sahifasini ko'rsatadi (Telegram, Google, Apple, telefon, email)."""
+    if t is None:
+        bot_username = await _get_bot_username()
+        html = (STATIC_DIR / "login.html").read_text(encoding="utf-8")
+        html = html.replace("{{BOT_USERNAME}}", bot_username)
+        return Response(content=html, media_type="text/html")
+
+    token_hash = hashlib.sha256(t.encode()).hexdigest()
+
+    async with async_session_factory() as session:
+        token_repo = WebLoginTokenRepo(session)
+        login_token = await token_repo.get_valid(token_hash)
+        if login_token is None:
+            raise HTTPException(status_code=400, detail="Havola eskirgan yoki allaqachon ishlatilgan")
+        await token_repo.mark_used(login_token)
+        session_token = await _issue_web_session(session, login_token.user_id)
+        await session.commit()
+
+    response = RedirectResponse(url="/")
+    _set_session_cookie(response, session_token)
+    return response
+
+
+def _safe_next_path(raw: Optional[str]) -> str:
+    """Faqat shu saytning o'z ichidagi yo'lga qaytarishga ruxsat beradi -
+    tashqi manzilga (open redirect) yo'naltirishning oldini oladi."""
+    if not raw or not raw.startswith("/") or raw.startswith("//") or "://" in raw:
+        return "/"
+    return raw
+
+
+@app.get("/auth/telegram/callback")
+async def telegram_login_callback(request: Request) -> RedirectResponse:
+    """Telegram Login Widget muvaffaqiyatli autentifikatsiyadan so'ng shu
+    yerga qaytaradi (GET query parametrlari bilan)."""
+    params = dict(request.query_params)
+    next_path = _safe_next_path(params.pop("next", None))
+
+    tg_data = _verify_telegram_login_widget(params)
+    if tg_data is None:
+        raise HTTPException(status_code=401, detail="Telegram autentifikatsiyasi noto'g'ri")
+
+    async with async_session_factory() as session:
+        user = await UserRepo(session).get_by_tg_id(int(tg_data["id"]))
+        if user is None:
+            # Foydalanuvchi hali botga /start bosmagan - avval shu shart
+            # bajarilishi kerak (referral/obuna tizimi shunga bog'liq).
+            return RedirectResponse(url="/login?error=start_bot_first")
+
+        session_token = await _issue_web_session(session, user.id)
+        await session.commit()
+
+    response = RedirectResponse(url=next_path)
+    _set_session_cookie(response, session_token)
+    return response
 
 
 @app.get("/api/admin/certificate")
@@ -367,9 +522,11 @@ def _marra2_campaign_summary(campaign: MarraCampaign) -> dict:
 
 
 @app.get("/api/admin/marra2/campaigns")
-async def marra2_list_campaigns(x_telegram_init_data: str = Header(default="")) -> dict:
+async def marra2_list_campaigns(
+    request: Request, x_telegram_init_data: str = Header(default="")
+) -> dict:
     async with async_session_factory() as session:
-        await _require_admin(x_telegram_init_data, session)
+        await _require_admin(x_telegram_init_data, session, request)
         campaign_repo = MarraCampaignRepo(session)
         participant_repo = MarraParticipantRepo(session)
 
@@ -386,10 +543,10 @@ async def marra2_list_campaigns(x_telegram_init_data: str = Header(default="")) 
 
 @app.post("/api/admin/marra2/campaigns")
 async def marra2_create_campaign(
-    payload: dict = Body(...), x_telegram_init_data: str = Header(default="")
+    request: Request, payload: dict = Body(...), x_telegram_init_data: str = Header(default="")
 ) -> dict:
     async with async_session_factory() as session:
-        await _require_admin(x_telegram_init_data, session)
+        await _require_admin(x_telegram_init_data, session, request)
 
         title = (payload.get("title") or "").strip()
         book_title = (payload.get("book_title") or "").strip()
@@ -427,10 +584,13 @@ async def marra2_create_campaign(
 
 @app.patch("/api/admin/marra2/campaigns/{campaign_id}")
 async def marra2_toggle_campaign(
-    campaign_id: int, payload: dict = Body(...), x_telegram_init_data: str = Header(default="")
+    campaign_id: int,
+    request: Request,
+    payload: dict = Body(...),
+    x_telegram_init_data: str = Header(default=""),
 ) -> dict:
     async with async_session_factory() as session:
-        await _require_admin(x_telegram_init_data, session)
+        await _require_admin(x_telegram_init_data, session, request)
         campaign_repo = MarraCampaignRepo(session)
         campaign = await campaign_repo.get_by_id(campaign_id)
         if campaign is None:
@@ -444,10 +604,10 @@ async def marra2_toggle_campaign(
 
 @app.get("/api/admin/marra2/campaigns/{campaign_id}/participants")
 async def marra2_campaign_participants(
-    campaign_id: int, x_telegram_init_data: str = Header(default="")
+    campaign_id: int, request: Request, x_telegram_init_data: str = Header(default="")
 ) -> dict:
     async with async_session_factory() as session:
-        await _require_admin(x_telegram_init_data, session)
+        await _require_admin(x_telegram_init_data, session, request)
         campaign = await MarraCampaignRepo(session).get_by_id(campaign_id)
         if campaign is None:
             raise HTTPException(status_code=404, detail="Kampaniya topilmadi")
@@ -482,10 +642,10 @@ async def marra2_campaign_participants(
 
 @app.get("/api/marra2/campaigns/{campaign_id}")
 async def marra2_campaign_detail(
-    campaign_id: int, init_data: str = Query(default="")
+    campaign_id: int, request: Request, init_data: str = Query(default="")
 ) -> dict:
     async with async_session_factory() as session:
-        tg_user = await _require_admin(init_data, session)
+        tg_user = await _require_admin(init_data, session, request)
         campaign = await MarraCampaignRepo(session).get_by_id(campaign_id)
         if campaign is None or not campaign.is_active:
             raise HTTPException(status_code=404, detail="Marra topilmadi")
@@ -514,10 +674,10 @@ async def marra2_campaign_detail(
 
 @app.post("/api/marra2/campaigns/{campaign_id}/join")
 async def marra2_join_campaign(
-    campaign_id: int, x_telegram_init_data: str = Header(default="")
+    campaign_id: int, request: Request, x_telegram_init_data: str = Header(default="")
 ) -> dict:
     async with async_session_factory() as session:
-        tg_user = await _require_admin(x_telegram_init_data, session)
+        tg_user = await _require_admin(x_telegram_init_data, session, request)
         campaign = await MarraCampaignRepo(session).get_by_id(campaign_id)
         if campaign is None or not campaign.is_active:
             raise HTTPException(status_code=404, detail="Marra topilmadi")
@@ -536,7 +696,10 @@ async def marra2_join_campaign(
 
 @app.post("/api/marra2/campaigns/{campaign_id}/heartbeat")
 async def marra2_heartbeat(
-    campaign_id: int, payload: dict = Body(...), x_telegram_init_data: str = Header(default="")
+    campaign_id: int,
+    request: Request,
+    payload: dict = Body(...),
+    x_telegram_init_data: str = Header(default=""),
 ) -> dict:
     """Kitob sahifasi ochiq va faol (brauzer tab ko'rinib turgan) paytda
     frontend har necha soniyada shu yerga soniya yuboradi - shu tariqa
@@ -552,7 +715,7 @@ async def marra2_heartbeat(
         raise HTTPException(status_code=400, detail="Noto'g'ri qiymat")
 
     async with async_session_factory() as session:
-        tg_user = await _require_admin(x_telegram_init_data, session)
+        tg_user = await _require_admin(x_telegram_init_data, session, request)
         campaign = await MarraCampaignRepo(session).get_by_id(campaign_id)
         if campaign is None or not campaign.is_active:
             raise HTTPException(status_code=404, detail="Marra topilmadi")

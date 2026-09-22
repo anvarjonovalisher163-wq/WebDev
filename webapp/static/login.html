@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>UCHQUN - kirish</title>
+<link rel="manifest" href="/static/manifest.json" />
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
+<meta name="theme-color" content="#071944" />
+<style>
+  :root {
+    --bg: #f4f7fb; --card-bg: #ffffff; --text: #101a2e; --hint: rgba(20,30,55,0.6);
+    --navy: #071944; --accent: #2a78c8; --border: #e2e7f0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0c1220; --card-bg: #151c30; --text: #f2f6ff; --hint: rgba(220,230,250,0.65); --border: #26304a; }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+  .box { width: 100%; max-width: 360px; text-align: center; }
+  .logo { font-size: 40px; margin-bottom: 8px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  .hint { color: var(--hint); font-size: 13px; margin: 0 0 28px; }
+
+  .btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+    padding: 13px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg);
+    color: var(--text); font-size: 15px; font-weight: 600; margin-bottom: 10px; cursor: pointer; }
+  .btn:disabled, .btn.soon { opacity: 0.5; cursor: default; }
+  .btn.soon::after { content: "tez orada"; font-weight: 400; font-size: 11px; color: var(--hint); margin-left: auto; }
+
+  #tg-widget-wrap { display: flex; justify-content: center; margin-bottom: 10px; }
+
+  .error { background: rgba(208,71,59,0.12); color: #d0473b; border-radius: 10px; padding: 10px 12px;
+    font-size: 13px; margin-bottom: 16px; display: none; }
+  .terms { font-size: 11px; color: var(--hint); margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <div class="logo">📖</div>
+  <h1>UCHQUNga xush kelibsiz!</h1>
+  <p class="hint">Kirish uchun quyidagilardan birini tanlang.</p>
+
+  <div class="error" id="error-box"></div>
+
+  <div id="tg-widget-wrap"></div>
+
+  <button class="btn soon" disabled>🔵 Google</button>
+  <button class="btn soon" disabled>🍎 Apple</button>
+  <button class="btn soon" disabled>📞 Telefon raqam</button>
+  <button class="btn soon" disabled>✉️ Elektron pochta</button>
+
+  <p class="terms">Davom etish orqali siz botdan avval /start bosgan bo'lishingiz kerak.</p>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const err = params.get("error");
+  if (err === "start_bot_first") {
+    const box = document.getElementById("error-box");
+    box.textContent = "Avval Telegram botga o'tib /start bosing, keyin shu sahifaga qayting.";
+    box.style.display = "block";
+  }
+
+  const botUsername = "{{BOT_USERNAME}}";
+  if (botUsername) {
+    const nextPath = params.get("next") || "/";
+    const authUrl = window.location.origin + "/auth/telegram/callback?next=" + encodeURIComponent(nextPath);
+    const script = document.createElement("script");
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.async = true;
+    script.setAttribute("data-telegram-login", botUsername);
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-radius", "12");
+    script.setAttribute("data-auth-url", authUrl);
+    script.setAttribute("data-request-access", "write");
+    document.getElementById("tg-widget-wrap").appendChild(script);
+  }
+</script>
+
+</body>
+</html>

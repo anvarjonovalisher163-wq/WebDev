@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Marra</title>
+<link rel="manifest" href="/static/manifest.json" />
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
+<meta name="theme-color" content="#071944" />
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root {
@@ -65,8 +68,16 @@ function showBlocked(text) {
   appEl.style.display = "none";
 }
 
+function goToLogin() {
+  window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+}
+
 async function apiGet(path) {
-  const res = await fetch(`${path}?init_data=${encodeURIComponent(initData)}`);
+  const res = await fetch(`${path}?init_data=${encodeURIComponent(initData)}`, { credentials: "same-origin" });
+  if (res.status === 401 && !initData) {
+    goToLogin();
+    throw new Error("Kirish talab qilinadi");
+  }
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `Xatolik (${res.status})`);
   return res.json();
 }
@@ -74,9 +85,14 @@ async function apiGet(path) {
 async function apiPost(path, body) {
   const res = await fetch(path, {
     method: "POST",
+    credentials: "same-origin",
     headers: { "X-Telegram-Init-Data": initData, "Content-Type": "application/json" },
     body: JSON.stringify(body || {}),
   });
+  if (res.status === 401 && !initData) {
+    goToLogin();
+    throw new Error("Kirish talab qilinadi");
+  }
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || `Xatolik (${res.status})`);
   return res.json();
 }
@@ -169,10 +185,6 @@ async function load() {
 }
 
 (async function init() {
-  if (!initData) {
-    showBlocked("Bu sahifa faqat Telegram ilovasi orqali ochiladi.");
-    return;
-  }
   if (!campaignId) {
     showBlocked("Marra topilmadi (id ko'rsatilmagan).");
     return;
