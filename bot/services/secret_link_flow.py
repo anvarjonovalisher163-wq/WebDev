@@ -9,6 +9,7 @@ from bot.models.season import Season
 from bot.models.settings import BotSettings
 from bot.models.user import User
 from bot.repositories.channel_repo import ChannelRepo
+from bot.repositories.invite_repo import InviteRepo
 from bot.services.invite_service import InviteService
 from bot.services.referral_service import ReferralService
 
@@ -28,8 +29,18 @@ async def try_auto_grant_secret_link(
     bo'lishi mumkin - admin uni mavsum boshida sozlashi kerak."""
     if season.secret_channel_id is None:
         return None
-    if user.joined_private_channel or user.secret_link_taken:
+    if user.joined_private_channel:
         return None
+    if user.secret_link_taken:
+        # `secret_link_taken` - "hech bo'lmasa bir marta havola berilgan"
+        # degani, "hozir ham amal qiladigan havolasi bor" degani emas.
+        # Agar oldingi havola (foydalanuvchi bosmasdan) muddati o'tib
+        # bekor bo'lgan bo'lsa, shu yerda abadiy to'xtab qolmasligi uchun
+        # hozirgi ACTIVE havola bor-yo'qligini tekshiramiz - yo'q bo'lsa
+        # yangisini beramiz.
+        existing_active = await InviteRepo(session).get_active_for_user(user.id)
+        if existing_active is not None:
+            return None
 
     channels = await ChannelRepo(session).list_active()
     await referral_service.recheck_approved_before_secret_link(user.id, channels)

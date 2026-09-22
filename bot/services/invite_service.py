@@ -56,8 +56,8 @@ class InviteService:
         except TelegramBadRequest:
             pass
 
-    async def expire_stale_links(self) -> int:
+    async def expire_stale_links(self) -> list[InviteLink]:
         expired = await self.invite_repo.list_expired_active(datetime.now(timezone.utc))
         for link in expired:
             await self.revoke(link, status=InviteLinkStatus.EXPIRED)
-        return len(expired)
+        return expired
