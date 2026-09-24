@@ -160,6 +160,12 @@ async def admin_page() -> FileResponse:
     return FileResponse(STATIC_DIR / "admin.html")
 
 
+# "Literal" dizayn uslubidagi landing sahifa (statik, API'ga bog'lanmagan).
+@app.get("/literal")
+async def literal_page() -> FileResponse:
+    return FileResponse(STATIC_DIR / "literal.html")
+
+
 # UCHQUN 2.0 - Marra (o'qish marafoni). Hozircha hech qayerdan (index.html,
 # admin.html, bot menyusi) link berilmagan - faqat to'g'ridan-to'g'ri URL
 # bilan va faqat admin sifatida ochish mumkin (pastdagi barcha /api/marra2/*

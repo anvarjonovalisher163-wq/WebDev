@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitobxon — o'qigan kitoblaringizni kuzating</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Colors */
+  --color-forest-green: #278458;
+  --color-charcoal: #444340;
+  --color-soft-gray: #f8f8f8;
+  --color-warm-gray: #9a988b;
+  --color-hairline-gray: #eeeeee;
+  --color-paper-white: #ffffff;
+  --color-ink-black: #000000;
+
+  /* Typography — Font Families */
+  --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-libre-baskerville: 'Libre Baskerville', Lora, "Source Serif Pro", Georgia, serif;
+
+  /* Typography — Scale */
+  --text-caption: 14px;
+  --leading-caption: 1.45;
+  --text-body: 16px;
+  --leading-body: 1.45;
+  --text-subheading: 22px;
+  --leading-subheading: 1.4;
+  --text-heading: 28px;
+  --leading-heading: 1.35;
+  --text-display: 40px;
+  --leading-display: 1.35;
+
+  /* Typography — Weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* Spacing */
+  --spacing-unit: 4px;
+  --spacing-8: 8px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-28: 28px;
+  --spacing-40: 40px;
+  --spacing-80: 80px;
+  --spacing-160: 160px;
+  --spacing-180: 180px;
+
+  /* Layout */
+  --page-max-width: 1200px;
+  --section-gap: 80px;
+  --card-padding: 20px;
+  --element-gap: 20px;
+
+  /* Border Radius */
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-2xl: 16px;
+
+  /* Named Radii */
+  --radius-cards: 8px;
+  --radius-other: 16px;
+  --radius-images: 4px;
+  --radius-buttons: 4px;
+
+  /* Surfaces */
+  --surface-canvas: #f8f8f8;
+  --surface-card: #ffffff;
+  --surface-ink: #000000;
+  --surface-brand: #278458;
+
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px var(--color-hairline-gray);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--surface-canvas);
+  color: var(--color-charcoal);
+  font-family: var(--font-inter);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+h1, h2, h3 { margin: 0; color: var(--color-ink-black); }
+p { margin: 0; }
+
+.container {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: 0 var(--spacing-20);
+}
+
+/* ---------- Navigation ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-paper-white);
+  border-bottom: 1px solid var(--color-hairline-gray);
+}
+.nav-inner {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-24);
+}
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-subheading);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-ink-black);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.wordmark .star { color: var(--color-forest-green); font-size: 26px; line-height: 1; }
+.search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  min-width: 0;
+}
+.search svg { flex-shrink: 0; color: var(--color-charcoal); }
+.search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-charcoal);
+  outline: none;
+  padding: 8px 0;
+}
+.search input::placeholder { color: var(--color-warm-gray); }
+.nav-actions { display: flex; align-items: center; gap: var(--spacing-20); flex-shrink: 0; }
+.ghost {
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-charcoal);
+  text-decoration: none;
+  cursor: pointer;
+}
+.ghost:hover { text-decoration: underline; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-8);
+  padding: 14px var(--spacing-28);
+  border: 0;
+  border-radius: var(--radius-buttons);
+  font-family: var(--font-inter);
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+  color: var(--color-paper-white);
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity .15s ease;
+}
+.btn:hover { opacity: .9; }
+.btn-primary { background: var(--surface-brand); }
+.btn-dark { background: var(--surface-ink); padding-top: 8px; padding-bottom: 8px; text-align: left; }
+.btn-dark .lines { display: flex; flex-direction: column; }
+.btn-dark .small { font-size: 11px; font-weight: var(--font-weight-regular); opacity: .85; }
+.btn-sm { padding: 10px var(--spacing-24); }
+
+/* ---------- Hero ---------- */
+.hero { padding: var(--spacing-80) 0 0; text-align: center; }
+.hero h1 {
+  font-family: var(--font-libre-baskerville);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--text-display);
+  line-height: var(--leading-display);
+  max-width: 680px;
+  margin: 0 auto;
+}
+.hero .sub {
+  max-width: 520px;
+  margin: var(--spacing-20) auto 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.cta-row {
+  margin-top: var(--spacing-28);
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Book cover collage */
+.collage {
+  position: relative;
+  height: 340px;
+  max-width: 980px;
+  margin: var(--spacing-40) auto 0;
+}
+.cover {
+  position: absolute;
+  width: 120px;
+  height: 180px;
+  border-radius: var(--radius-images);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  color: #fff;
+  overflow: hidden;
+}
+.cover .t { font-family: var(--font-libre-baskerville); font-size: 14px; line-height: 1.25; }
+.cover .a { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+.cover.lg { width: 150px; height: 225px; }
+.cover.lg .t { font-size: 17px; }
+
+/* ---------- Sections ---------- */
+section.block { padding: var(--section-gap) 0 0; }
+section.block:last-of-type { padding-bottom: var(--section-gap); }
+.section-heading {
+  font-family: var(--font-libre-baskerville);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--text-heading);
+  line-height: var(--leading-heading);
+  text-align: center;
+}
+.section-sub {
+  text-align: center;
+  max-width: 540px;
+  margin: 12px auto 0;
+}
+.section-cta { text-align: center; margin-top: var(--spacing-24); }
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--element-gap);
+  margin-top: var(--spacing-40);
+}
+
+.card {
+  background: var(--surface-card);
+  border-radius: var(--radius-cards);
+  box-shadow: var(--card-shadow);
+  padding: var(--card-padding);
+}
+
+/* Feature card */
+.feature { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.feature h3 {
+  font-size: var(--text-subheading);
+  line-height: 1.35;
+  font-weight: var(--font-weight-medium);
+}
+.points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+.shot {
+  margin-top: auto;
+  background: var(--surface-canvas);
+  border-radius: var(--radius-images);
+  padding: var(--spacing-16);
+  font-size: 13px;
+}
+
+/* Screenshot mockups */
+.mock-book { display: flex; gap: 12px; align-items: center; }
+.mock-book .mini { width: 44px; height: 66px; border-radius: var(--radius-images); flex-shrink: 0; }
+.mock-book .meta { flex: 1; min-width: 0; }
+.mock-book .title { color: var(--color-ink-black); font-weight: var(--font-weight-medium); }
+.mock-book .author { color: var(--color-warm-gray); }
+.progress { height: 4px; background: var(--color-hairline-gray); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.progress span { display: block; height: 100%; background: var(--color-charcoal); }
+.mock-list { display: flex; flex-direction: column; }
+.mock-list .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-hairline-gray); }
+.mock-list .row:last-child { border-bottom: 0; }
+.mock-list .row span:last-child { color: var(--color-warm-gray); }
+.mock-scan {
+  height: 120px;
+  border: 1px dashed var(--color-warm-gray);
+  border-radius: var(--radius-images);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-warm-gray);
+}
+.mock-scan .bars { display: flex; gap: 2px; height: 40px; }
+.mock-scan .bars i { display: block; width: 2px; background: var(--color-charcoal); }
+.mock-scan .bars i:nth-child(3n) { width: 4px; }
+.mock-scan .bars i:nth-child(4n) { width: 1px; }
+
+/* Testimonial card */
+.testimonial { display: flex; flex-direction: column; gap: 12px; }
+.who { display: flex; align-items: center; gap: 10px; }
+.avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--color-hairline-gray);
+  color: var(--color-charcoal);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: var(--font-weight-medium);
+  flex-shrink: 0;
+}
+.who .name { font-size: 15px; font-weight: var(--font-weight-medium); display: flex; align-items: center; gap: 4px; }
+.who .handle { font-size: var(--text-caption); color: var(--color-warm-gray); }
+.who .platform { margin-left: auto; color: var(--color-warm-gray); }
+.quote { font-size: 15px; line-height: 1.5; }
+
+/* Bottom CTA */
+.final { text-align: center; }
+.final .cta-row { margin-top: var(--spacing-24); }
+
+/* Footer */
+footer {
+  border-top: 1px solid var(--color-hairline-gray);
+  background: var(--color-paper-white);
+  padding: var(--spacing-40) 0;
+  font-size: var(--text-caption);
+  color: var(--color-warm-gray);
+}
+.footer-inner { display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--spacing-16); }
+.footer-links { display: flex; gap: var(--spacing-20); flex-wrap: wrap; }
+.footer-links a { text-decoration: none; }
+.footer-links a:hover { text-decoration: underline; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0 var(--spacing-16); }
+  .nav-inner { gap: var(--spacing-16); }
+  .search { display: none; }
+  .nav-actions { margin-left: auto; }
+  .hero { padding-top: var(--spacing-40); }
+  .hero h1 { font-size: 30px; }
+  .cta-row { flex-direction: column; align-items: stretch; }
+  .cta-row .btn { width: 100%; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .collage { height: 220px; overflow: hidden; }
+  .cover { width: 72px; height: 108px; padding: 8px; }
+  .cover.lg { width: 92px; height: 138px; }
+  .cover .t, .cover.lg .t { font-size: 11px; }
+  .cover .a { font-size: 8px; }
+  section.block { padding-top: 60px; }
+  .section-heading { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="#" class="wordmark">Kitobxon<span class="star">✱</span></a>
+    <label class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" placeholder="Kitob, muallif, javon yoki foydalanuvchini qidiring…" aria-label="Qidirish">
+    </label>
+    <div class="nav-actions">
+      <a href="#" class="ghost">Kirish</a>
+      <a href="#" class="btn btn-primary btn-sm">Qo'shilish →</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <h1>O'qigan kitoblaringizni kuzating va do'stlaringiz bilan ulashing</h1>
+      <p class="sub">Keyingi sevimli kitobingizni toping, o'qish maqsadlaringizni belgilang va kitobsevarlar hamjamiyatiga qo'shiling.</p>
+      <div class="cta-row">
+        <a href="#" class="btn btn-primary">Bepul qo'shilish →</a>
+        <a href="#" class="btn btn-dark">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 12.64c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.51 1.25-2.58-.03-.01-2.39-.92-2.4-3.66zM14.1 5.9c.63-.77 1.06-1.83.94-2.9-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.27z"/></svg>
+          <span class="lines"><span class="small">Yuklab oling</span>App Store</span>
+        </a>
+      </div>
+
+      <div class="collage" aria-hidden="true">
+        <div class="cover" style="left:2%;top:70px;background:#c8553d;--r:-6deg;transform:rotate(-6deg)"><span class="t">O'tkan kunlar</span><span class="a">A. Qodiriy</span></div>
+        <div class="cover lg" style="left:14%;top:20px;background:#2f4858;--r:3deg;transform:rotate(3deg)"><span class="t">Kecha va kunduz</span><span class="a">Cho'lpon</span></div>
+        <div class="cover" style="left:30%;top:100px;background:#e0b04c;color:#222;--r:-2deg;transform:rotate(-2deg)"><span class="t">Sariq devni minib</span><span class="a">X. To'xtaboyev</span></div>
+        <div class="cover lg" style="left:42%;top:0;background:#6b4e71;--r:0deg"><span class="t">Ufq</span><span class="a">Said Ahmad</span></div>
+        <div class="cover" style="left:58%;top:90px;background:#3a7ca5;--r:4deg;transform:rotate(4deg)"><span class="t">Dunyoning ishlari</span><span class="a">O. Hoshimov</span></div>
+        <div class="cover lg" style="left:70%;top:30px;background:#1f1f1f;--r:-3deg;transform:rotate(-3deg)"><span class="t">Shaytanat</span><span class="a">T. Malik</span></div>
+        <div class="cover" style="left:86%;top:110px;background:#b5838d;--r:5deg;transform:rotate(5deg)"><span class="t">Alkimyogar</span><span class="a">P. Koelyo</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="block">
+    <div class="container">
+      <h2 class="section-heading">Kitobxonlik hayotingiz — bir joyda</h2>
+      <p class="section-sub">O'qish jarayonini kuzating, javonlaringizni tartiblang va yangi kitoblarni kashf eting.</p>
+      <div class="grid-3">
+        <article class="card feature">
+          <h3>O'qish jarayoni</h3>
+          <ul class="points">
+            <li>Hozir o'qiyotgan kitoblaringizni belgilang</li>
+            <li>Sahifa bo'yicha taraqqiyotni yozib boring</li>
+            <li>Yillik o'qish maqsadini qo'ying</li>
+          </ul>
+          <div class="shot">
+            <div class="mock-book">
+              <div class="mini" style="background:#2f4858"></div>
+              <div class="meta">
+                <div class="title">Kecha va kunduz</div>
+                <div class="author">Cho'lpon · 142 / 280 bet</div>
+                <div class="progress"><span style="width:51%"></span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card feature">
+          <h3>Shaxsiy kutubxona</h3>
+          <ul class="points">
+            <li>Istalgancha javon yarating</li>
+            <li>O'qilgan, o'qilmoqda, o'qiladi</li>
+            <li>Javonlarni do'stlar bilan ulashing</li>
+          </ul>
+          <div class="shot">
+            <div class="mock-list">
+              <div class="row"><span>O'qilgan</span><span>48</span></div>
+              <div class="row"><span>O'qilmoqda</span><span>3</span></div>
+              <div class="row"><span>O'qiladi</span><span>21</span></div>
+              <div class="row"><span>Sevimlilar</span><span>12</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card feature">
+          <h3>Shtrix-kod skaneri</h3>
+          <ul class="points">
+            <li>Kitob orqasidagi kodni skanerlang</li>
+            <li>Bir soniyada javonga qo'shing</li>
+            <li>Uydagi kutubxonangizni raqamlashtiring</li>
+          </ul>
+          <div class="shot">
+            <div class="mock-scan">
+              <div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <span>ISBN 978-9943-…</span>
+            </div>
+          </div>
+        </article>
+      </div>
+      <div class="section-cta"><a href="#" class="btn btn-primary">Ro'yxatdan o'tish →</a></div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="block">
+    <div class="container">
+      <h2 class="section-heading">Hamma uni yaxshi ko'radi</h2>
+      <div class="grid-3" id="testimonials"></div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="block final">
+    <div class="container">
+      <h2 class="section-heading">Keyingi kitobingiz sizni kutmoqda</h2>
+      <p class="section-sub">Bepul ro'yxatdan o'ting va o'qish sayohatingizni bugun boshlang.</p>
+      <div class="cta-row">
+        <a href="#" class="btn btn-primary">Bepul qo'shilish →</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container footer-inner">
+    <span>© 2026 Kitobxon</span>
+    <nav class="footer-links">
+      <a href="#">Biz haqimizda</a>
+      <a href="#">Maxfiylik</a>
+      <a href="#">Shartlar</a>
+      <a href="#">Aloqa</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  const testimonials = [
+    { name: "Dilnoza R.", handle: "@dilnoza_reads", text: "Nihoyat o'qigan kitoblarimni chiroyli tartibda saqlaydigan joy topdim. Interfeysi juda sokin va qulay." },
+    { name: "Jasur T.", handle: "@jasurbook", text: "Yillik maqsadni qo'ydim — 30 ta kitob. Taraqqiyotni ko'rib turish motivatsiya beradi." },
+    { name: "Madina K.", handle: "@madina.k", text: "Skaner funksiyasi ajoyib: uydagi butun kutubxonamni bir kechada qo'shib chiqdim." },
+    { name: "Bekzod A.", handle: "@bekzod_a", text: "Do'stlarim nima o'qiyotganini ko'rish va tavsiyalar olish — eng sevimli qismim." },
+    { name: "Nilufar S.", handle: "@nilu_reads", text: "Reklamalarsiz, ortiqcha narsalarsiz. Faqat kitoblar va o'qish. Aynan kerakli narsa." },
+    { name: "Sardor M.", handle: "@sardor.m", text: "Javonlarni ulashish imkoniyati kitob klubimiz uchun juda asqotdi." },
+  ];
+  const check = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>';
+  const xGlyph = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.75 3h3.07l-6.7 7.66L22 21h-6.17l-4.83-6.32L5.47 21H2.4l7.17-8.2L2 3h6.33l4.37 5.77L17.75 3zm-1.08 16.2h1.7L7.4 4.73H5.58L16.67 19.2z"/></svg>';
+  const initials = n => n.split(/\s+/).map(p => p[0]).join('').slice(0, 2).toUpperCase();
+  document.getElementById('testimonials').innerHTML = testimonials.map(t => `
+    <article class="card testimonial">
+      <div class="who">
+        <div class="avatar">${initials(t.name)}</div>
+        <div>
+          <div class="name">${t.name} ${check}</div>
+          <div class="handle">${t.handle}</div>
+        </div>
+        <span class="platform">${xGlyph}</span>
+      </div>
+      <p class="quote">${t.text}</p>
+    </article>`).join('');
+</script>
+</body>
+</html>
