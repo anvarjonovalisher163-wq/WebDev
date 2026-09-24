@@ -4,124 +4,115 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Marra 2.0 - admin</title>
+<meta name="theme-color" content="#000000" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" />
+<link rel="stylesheet" href="/static/theme.css?v=1" />
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  :root {
-    --bg: #f4f7fb; --card-bg: #ffffff; --text: #101a2e; --hint: rgba(20,30,55,0.6);
-    --navy: #071944; --accent: #2a78c8; --border: #e2e7f0; --green: #1a9e5c; --red: #d0473b;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #0c1220; --card-bg: #151c30; --text: #f2f6ff; --hint: rgba(220,230,250,0.65); --border: #26304a; }
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
-  body { padding: 16px 16px 40px; }
-  h1 { font-size: 19px; margin: 4px 0 4px; }
-  h2 { font-size: 15px; margin: 0 0 10px; }
-  .hint { color: var(--hint); font-size: 13px; margin: 0 0 16px; }
-  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
-  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-  .field-hint { font-size: 12px; color: var(--hint); margin: -3px 0 8px; }
-  input[type=text], input[type=number], input[type=date], textarea {
-    width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
-    font-size: 14px; background: transparent; color: var(--text); font-family: inherit; resize: vertical;
-  }
-  textarea { min-height: 90px; }
-  input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-  .row { margin-bottom: 12px; } .row:last-child { margin-bottom: 0; }
-  .row2 { display: flex; gap: 10px; } .row2 > div { flex: 1; }
-  button.primary { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--navy);
-    color: #fff; font-size: 15px; font-weight: 600; margin-top: 4px; cursor: pointer; }
-  button.primary:active { opacity: 0.85; }
-  button.primary:disabled { opacity: 0.5; }
-  .status { text-align: center; font-size: 13px; margin-top: 10px; min-height: 18px; }
-  .status.ok { color: var(--green); } .status.err { color: var(--red); }
-  .blocked { text-align: center; padding: 60px 20px; color: var(--hint); }
+  main.wrap { padding-top: 32px; padding-bottom: 48px; }
+  .intro { margin: 0 0 var(--section-gap); }
+  #f-book-text { min-height: 180px; }
+  #btn-create { margin-top: 8px; }
 
-  .campaign { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; cursor: pointer; }
-  .campaign .top { display: flex; justify-content: space-between; align-items: center; }
-  .campaign .title { font-weight: 600; font-size: 14px; }
-  .badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
-  .badge.active { background: rgba(26,158,92,0.15); color: var(--green); }
-  .badge.inactive { background: rgba(208,71,59,0.15); color: var(--red); }
-  .campaign .meta { font-size: 12px; color: var(--hint); margin-top: 4px; }
-  .toggle-btn { font-size: 12px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border);
-    background: transparent; color: var(--text); margin-top: 8px; }
+  .campaign { padding: 18px 0; border-bottom: 1px solid var(--line-soft); cursor: pointer; }
+  .campaign:first-child { padding-top: 0; }
+  .campaign .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .campaign .title { font-size: var(--text-body); line-height: 1.21; }
+  .campaign .meta { font-size: var(--text-caption); line-height: 1.36; color: var(--muted); margin-top: 4px; }
+  .campaign .toggle-btn { margin-top: 12px; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
-  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); }
-  .dot { display: inline-block; width: 16px; height: 16px; border-radius: 4px; margin-right: 2px; font-size: 10px;
-    text-align: center; line-height: 16px; }
-  .dot.done { background: var(--green); color: #fff; }
-  .dot.miss { background: var(--border); color: var(--hint); }
-  .elim { color: var(--red); font-weight: 600; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: var(--text-caption); }
+  th {
+    text-align: left; font-weight: 400; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); padding: 8px 8px 8px 0; border-bottom: 1px solid var(--line);
+  }
+  td { text-align: left; vertical-align: top; padding: 10px 8px 10px 0; border-bottom: 1px solid var(--line-soft); }
+  .dots { display: flex; gap: 2px; }
+  .dot {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; font-size: 10px; border: 1px solid var(--line-soft); color: var(--muted);
+  }
+  .dot.done { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+  .elim { font-weight: 600; }
 </style>
 </head>
 <body>
 
+<header class="hero compact">
+  <div class="iri" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+  <nav class="hero-nav">
+    <span class="wordmark">uchqun</span>
+    <span class="eyebrow" style="color: rgba(255,255,255,0.82);">Admin</span>
+  </nav>
+  <h1 class="hero-title sm">Marra 2.0</h1>
+</header>
+
 <div id="blocked" class="blocked" style="display:none;">Sizda admin huquqi yo'q.</div>
 
-<div id="app" style="display:none;">
-  <h1>📖 Marra 2.0 (admin)</h1>
-  <p class="hint">Bu sahifa hozircha faqat adminlarga ko'rinadi. Yangi marra kampaniyasi yarating yoki mavjudlarini boshqaring.</p>
+<main class="wrap" id="app" style="display:none;">
+  <p class="lead intro">Bu sahifa hozircha faqat adminlarga ko'rinadi. Yangi marra kampaniyasi yarating yoki mavjudlarini boshqaring.</p>
 
-  <div class="card">
-    <h2>➕ Yangi marra yaratish</h2>
-    <div class="row">
-      <label>Sarlavha</label>
+  <section class="section">
+    <h2 class="h-section">Yangi marra yaratish</h2>
+    <div class="field">
+      <label for="f-title">Sarlavha</label>
       <input type="text" id="f-title" placeholder="Masalan: Yoshlar yetakchisi kubogi" />
     </div>
-    <div class="row">
-      <label>Tavsif</label>
+    <div class="field">
+      <label for="f-description">Tavsif</label>
       <textarea id="f-description" placeholder="Marra haqida qisqacha ma'lumot"></textarea>
     </div>
-    <div class="row">
-      <label>Sovrin</label>
+    <div class="field">
+      <label for="f-prize">Sovrin</label>
       <input type="text" id="f-prize" placeholder="Masalan: 1 yillik Premium - 1 o'rin" />
     </div>
-    <div class="row">
-      <label>Kitob nomi</label>
+    <div class="field">
+      <label for="f-book-title">Kitob nomi</label>
       <input type="text" id="f-book-title" placeholder="Masalan: Kichkina shahzoda" />
     </div>
-    <div class="row">
-      <label>Kitob matni</label>
+    <div class="field">
+      <label for="f-book-text">Kitob matni</label>
       <div class="field-hint">Ishtirokchilar shu matnni ilova ichida o'qiydi, vaqt avtomatik hisoblanadi.</div>
-      <textarea id="f-book-text" style="min-height:160px" placeholder="Kitob matnini shu yerga joylashtiring..."></textarea>
+      <textarea id="f-book-text" placeholder="Kitob matnini shu yerga joylashtiring..."></textarea>
     </div>
-    <div class="row row2">
+    <div class="field row2">
       <div>
-        <label>Necha kunlik</label>
+        <label class="field-label" for="f-days">Necha kunlik</label>
         <input type="number" id="f-days" min="1" value="8" />
       </div>
       <div>
-        <label>Kunlik daqiqa</label>
+        <label class="field-label" for="f-minutes">Kunlik daqiqa</label>
         <input type="number" id="f-minutes" min="1" value="19" />
       </div>
     </div>
-    <div class="row">
-      <label>Boshlanish sanasi</label>
+    <div class="field">
+      <label for="f-start-date">Boshlanish sanasi</label>
       <input type="date" id="f-start-date" />
     </div>
-    <button class="primary" id="btn-create">Yaratish</button>
+    <button class="pill solid block" id="btn-create">Yaratish</button>
     <div class="status" id="create-status"></div>
-  </div>
+  </section>
 
-  <div class="card">
-    <h2>📋 Mavjud marralar</h2>
-    <div id="campaigns-list" class="hint">Yuklanmoqda...</div>
-  </div>
+  <section class="section">
+    <h2 class="h-section">Mavjud marralar</h2>
+    <div id="campaigns-list" class="loading">Yuklanmoqda...</div>
+  </section>
 
-  <div class="card" id="detail-card" style="display:none;">
-    <h2 id="detail-title">Ishtirokchilar</h2>
+  <section class="section" id="detail-card" style="display:none;">
+    <h2 class="h-section" id="detail-title">Ishtirokchilar</h2>
     <div id="detail-body"></div>
-  </div>
-</div>
+  </section>
+</main>
 
 <script>
 const tg = window.Telegram?.WebApp;
 tg?.ready();
 tg?.expand();
+try { tg?.setHeaderColor("#000000"); } catch (e) {}
 const initData = tg?.initData || "";
 
 function headers(extra) {
@@ -146,8 +137,9 @@ async function loadCampaigns() {
   const listEl = document.getElementById("campaigns-list");
   try {
     const data = await api("/api/admin/marra2/campaigns");
+    listEl.className = "";
     if (!data.campaigns.length) {
-      listEl.innerHTML = '<p class="hint">Hali marra yaratilmagan.</p>';
+      listEl.innerHTML = '<p class="empty">Hali marra yaratilmagan.</p>';
       return;
     }
     listEl.innerHTML = "";
@@ -157,12 +149,12 @@ async function loadCampaigns() {
       el.innerHTML = `
         <div class="top">
           <div class="title">${c.title}</div>
-          <span class="badge ${c.is_active ? "active" : "inactive"}">${c.is_active ? "faol" : "o'chirilgan"}</span>
+          <span class="tag ${c.is_active ? "filled" : "quiet"}">${c.is_active ? "faol" : "o'chirilgan"}</span>
         </div>
         <div class="meta">${c.book_title} - ${c.day_count} kunlik, kuniga ${c.daily_minutes_required} daq</div>
         <div class="meta">${fmtDate(c.start_date)} - ${fmtDate(c.end_date)}</div>
-        <div class="meta">👥 ${c.active_participant_count}/${c.participant_count} faol ishtirokchi</div>
-        <button class="toggle-btn" data-id="${c.id}" data-active="${c.is_active}">
+        <div class="meta">${c.active_participant_count}/${c.participant_count} faol ishtirokchi</div>
+        <button class="pill sm toggle-btn" data-id="${c.id}" data-active="${c.is_active}">
           ${c.is_active ? "O'chirish" : "Faollashtirish"}
         </button>
       `;
@@ -214,18 +206,16 @@ function renderParticipantTable(data, tab) {
 
   const tabsHtml = TABS.map(
     (t) =>
-      `<button class="toggle-btn tab-btn" data-tab="${t.key}" style="${
-        t.key === tab ? "background:var(--navy);color:#fff;" : ""
-      }">${t.label} (${filterParticipants(data, t.key).length})</button>`
-  ).join(" ");
+      `<button class="pill sm tab-btn${t.key === tab ? " active" : ""}" data-tab="${t.key}">${t.label} (${filterParticipants(data, t.key).length})</button>`
+  ).join("");
 
-  let html = `<p class="hint">Bugungi kun: ${data.today_day_number}/${days}</p>`;
-  html += `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${tabsHtml}</div>`;
+  let html = `<p class="eyebrow" style="margin: 0 0 16px;">Bugungi kun: ${data.today_day_number}/${days}</p>`;
+  html += `<div class="tabs">${tabsHtml}</div>`;
 
   if (!list.length) {
-    html += '<p class="hint">Bu bo\'limda hech kim yo\'q.</p>';
+    html += '<p class="empty">Bu bo\'limda hech kim yo\'q.</p>';
   } else {
-    html += "<table><tr><th>Ism</th><th>Kunlar</th><th>Holat</th></tr>";
+    html += '<div class="table-scroll"><table><tr><th>Ism</th><th>Kunlar</th><th>Holat</th></tr>';
     list.forEach((p) => {
       let dots = "";
       for (let d = 1; d <= days; d++) {
@@ -235,9 +225,9 @@ function renderParticipantTable(data, tab) {
       const status = p.is_eliminated
         ? `<span class="elim">chiqarilgan (${p.eliminated_on_day}-kun)</span>`
         : "faol";
-      html += `<tr><td>${p.name}${p.username ? " @" + p.username : ""}</td><td>${dots}</td><td>${status}</td></tr>`;
+      html += `<tr><td>${p.name}${p.username ? " @" + p.username : ""}</td><td><div class="dots">${dots}</div></td><td>${status}</td></tr>`;
     });
-    html += "</table>";
+    html += "</table></div>";
   }
 
   const body = document.getElementById("detail-body");
@@ -253,9 +243,9 @@ function renderParticipantTable(data, tab) {
 async function showDetail(id, title) {
   const card = document.getElementById("detail-card");
   const body = document.getElementById("detail-body");
-  document.getElementById("detail-title").textContent = `👥 ${title}`;
+  document.getElementById("detail-title").textContent = title;
   card.style.display = "block";
-  body.innerHTML = '<p class="hint">Yuklanmoqda...</p>';
+  body.innerHTML = '<p class="loading">Yuklanmoqda...</p>';
   card.scrollIntoView({ behavior: "smooth" });
 
   try {
@@ -287,7 +277,7 @@ document.getElementById("btn-create").addEventListener("click", async () => {
   btn.disabled = true;
   try {
     await api("/api/admin/marra2/campaigns", { method: "POST", body: JSON.stringify(payload) });
-    statusEl.textContent = "Yaratildi ✅";
+    statusEl.textContent = "Yaratildi";
     statusEl.className = "status ok";
     ["f-title", "f-description", "f-prize", "f-book-title", "f-book-text"].forEach(
       (id) => (document.getElementById(id).value = "")

@@ -6,111 +6,113 @@
 <title>UCHQUN - kirish</title>
 <link rel="manifest" href="/static/manifest.json" />
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
-<meta name="theme-color" content="#071944" />
+<meta name="theme-color" content="#000000" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" />
+<link rel="stylesheet" href="/static/theme.css?v=1" />
 <style>
-  :root {
-    --bg: #f4f7fb; --card-bg: #ffffff; --text: #101a2e; --hint: rgba(20,30,55,0.6);
-    --navy: #071944; --accent: #2a78c8; --border: #e2e7f0; --green: #1a9e5c; --red: #d0473b;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #0c1220; --card-bg: #151c30; --text: #f2f6ff; --hint: rgba(220,230,250,0.65); --border: #26304a; }
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
-  body { display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
-  .box { width: 100%; max-width: 360px; text-align: center; }
-  .logo { font-size: 40px; margin-bottom: 8px; }
-  h1 { font-size: 20px; margin: 0 0 6px; }
-  .hint { color: var(--hint); font-size: 13px; margin: 0 0 20px; }
+  main.wrap { padding-top: 32px; padding-bottom: 48px; }
+  .intro { margin: 0 0 28px; }
 
-  .btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
-    padding: 13px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg);
-    color: var(--text); font-size: 15px; font-weight: 600; margin-bottom: 10px; cursor: pointer; }
-  .btn:disabled, .btn.soon { opacity: 0.5; cursor: default; }
-  .btn.soon::after { content: "tez orada"; font-weight: 400; font-size: 11px; color: var(--hint); margin-left: auto; }
+  #tg-widget-wrap { display: flex; justify-content: flex-start; min-height: 40px; margin-bottom: 12px; }
+  #tg-fallback-hint { margin: 0 0 32px; }
 
-  #tg-widget-wrap { display: flex; justify-content: center; margin-bottom: 10px; }
+  .methods { border-top: 1px solid var(--line); padding-top: 20px; }
+  .methods > .eyebrow { display: block; margin-bottom: 16px; }
+  .btn { margin-bottom: 12px; }
+  .btn.soon { opacity: 0.4; cursor: default; }
+  .btn.soon::after { content: "tez orada"; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-left: 4px; }
 
-  .error { background: rgba(208,71,59,0.12); color: var(--red); border-radius: 10px; padding: 10px 12px;
-    font-size: 13px; margin-bottom: 16px; display: none; text-align: left; }
-  .ok-msg { background: rgba(26,158,92,0.12); color: var(--green); border-radius: 10px; padding: 10px 12px;
-    font-size: 13px; margin-bottom: 16px; display: none; text-align: left; }
-  .terms { font-size: 11px; color: var(--hint); margin-top: 20px; }
+  .error, .ok-msg { display: none; }
 
-  .panel { display: none; text-align: left; border: 1px solid var(--border); border-radius: 12px;
-    padding: 14px; margin-bottom: 10px; background: var(--card-bg); }
-  .panel.open { display: block; }
-  .panel label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
-  .panel input { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
-    font-size: 15px; background: transparent; color: var(--text); font-family: inherit; margin-bottom: 10px; }
-  .panel input:focus { outline: none; border-color: var(--accent); }
-  .panel .row2 { display: flex; gap: 8px; }
-  .panel .row2 button { flex: 1; padding: 11px; border-radius: 10px; border: none; font-weight: 600;
-    font-size: 13px; cursor: pointer; }
-  .panel .send-btn { background: var(--navy); color: #fff; }
-  .panel .cancel-btn { background: transparent; border: 1px solid var(--border) !important; color: var(--hint); }
+  .panel { display: none; border: 1px solid var(--line-soft); padding: 20px 16px; margin: -4px 0 16px; }
+  .panel.open { display: block; animation: rise 1.25s var(--ease) both; }
+  .panel .field { margin-bottom: 20px; }
+  .panel .row2 { gap: 8px; }
+  .panel .row2 .pill { padding-left: 12px; padding-right: 12px; }
+
+  .terms { font-size: 11px; line-height: 1.36; color: var(--muted); margin: 28px 0 0; }
 </style>
 </head>
 <body>
 
-<div class="box">
-  <div class="logo">📖</div>
-  <h1>UCHQUNga xush kelibsiz!</h1>
-  <p class="hint">Kirish uchun quyidagilardan birini tanlang.</p>
+<header class="hero compact">
+  <div class="iri" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+  <nav class="hero-nav">
+    <span class="wordmark">uchqun</span>
+    <span class="eyebrow" style="color: rgba(255,255,255,0.82);">Kirish</span>
+  </nav>
+  <h1 class="hero-title sm">UCHQUNga xush kelibsiz</h1>
+</header>
 
-  <div class="error" id="error-box"></div>
-  <div class="ok-msg" id="ok-box"></div>
+<main class="wrap narrow">
+  <p class="lead intro">Kirish uchun quyidagilardan birini tanlang.</p>
+
+  <div class="notice error" id="error-box"></div>
+  <div class="notice quiet ok-msg" id="ok-box"></div>
 
   <div id="tg-widget-wrap"></div>
-  <p class="hint" id="tg-fallback-hint" style="margin: -6px 0 20px;">
+  <p class="small muted" id="tg-fallback-hint">
     Telegram tugmasi ko'rinmasa - botga o'tib <b>/webapp</b> buyrug'ini yuboring, u sizga shu sahifaga kirish havolasini beradi.
   </p>
 
-  <button class="btn" id="btn-google">🔵 Google</button>
+  <div class="methods">
+    <span class="eyebrow">Boshqa usullar</span>
 
-  <button class="btn" id="btn-open-email">✉️ Elektron pochta</button>
-  <div class="panel" id="panel-email">
-    <div id="email-step-1">
-      <label>Elektron pochta manzilingiz</label>
-      <input type="email" id="email-input" placeholder="siz@example.com" />
-      <div class="row2">
-        <button class="send-btn" id="email-send">Kod yuborish</button>
-        <button class="cancel-btn" data-close="panel-email">Bekor qilish</button>
-      </div>
-    </div>
-    <div id="email-step-2" style="display:none;">
-      <label>Emailingizga yuborilgan 6 xonali kod</label>
-      <input type="text" id="email-code-input" inputmode="numeric" maxlength="6" placeholder="000000" />
-      <div class="row2">
-        <button class="send-btn" id="email-verify">Kirish</button>
-        <button class="cancel-btn" data-close="panel-email">Bekor qilish</button>
-      </div>
-    </div>
-  </div>
+    <button class="pill block btn" id="btn-google">Google</button>
 
-  <button class="btn" id="btn-open-phone">📞 Telefon raqam</button>
-  <div class="panel" id="panel-phone">
-    <div id="phone-step-1">
-      <label>Telefon raqamingiz</label>
-      <input type="tel" id="phone-input" placeholder="+998901234567" />
-      <div class="row2">
-        <button class="send-btn" id="phone-send">Kod yuborish</button>
-        <button class="cancel-btn" data-close="panel-phone">Bekor qilish</button>
+    <button class="pill block btn" id="btn-open-email">Elektron pochta</button>
+    <div class="panel" id="panel-email">
+      <div id="email-step-1">
+        <div class="field">
+          <label for="email-input">Elektron pochta manzilingiz</label>
+          <input type="email" id="email-input" placeholder="siz@example.com" />
+        </div>
+        <div class="row2">
+          <button class="pill solid" id="email-send">Kod yuborish</button>
+          <button class="pill" data-close="panel-email">Bekor qilish</button>
+        </div>
+      </div>
+      <div id="email-step-2" style="display:none;">
+        <div class="field">
+          <label for="email-code-input">Emailingizga yuborilgan 6 xonali kod</label>
+          <input type="text" id="email-code-input" inputmode="numeric" maxlength="6" placeholder="000000" />
+        </div>
+        <div class="row2">
+          <button class="pill solid" id="email-verify">Kirish</button>
+          <button class="pill" data-close="panel-email">Bekor qilish</button>
+        </div>
       </div>
     </div>
-    <div id="phone-step-2" style="display:none;">
-      <label>SMS orqali kelgan 6 xonali kod</label>
-      <input type="text" id="phone-code-input" inputmode="numeric" maxlength="6" placeholder="000000" />
-      <div class="row2">
-        <button class="send-btn" id="phone-verify">Kirish</button>
-        <button class="cancel-btn" data-close="panel-phone">Bekor qilish</button>
+
+    <button class="pill block btn" id="btn-open-phone">Telefon raqam</button>
+    <div class="panel" id="panel-phone">
+      <div id="phone-step-1">
+        <div class="field">
+          <label for="phone-input">Telefon raqamingiz</label>
+          <input type="tel" id="phone-input" placeholder="+998901234567" />
+        </div>
+        <div class="row2">
+          <button class="pill solid" id="phone-send">Kod yuborish</button>
+          <button class="pill" data-close="panel-phone">Bekor qilish</button>
+        </div>
+      </div>
+      <div id="phone-step-2" style="display:none;">
+        <div class="field">
+          <label for="phone-code-input">SMS orqali kelgan 6 xonali kod</label>
+          <input type="text" id="phone-code-input" inputmode="numeric" maxlength="6" placeholder="000000" />
+        </div>
+        <div class="row2">
+          <button class="pill solid" id="phone-verify">Kirish</button>
+          <button class="pill" data-close="panel-phone">Bekor qilish</button>
+        </div>
       </div>
     </div>
   </div>
 
   <p class="terms">Google/email/telefon - faqat avval Telegram orqali kirgan hisobingizga qo'shimcha kirish yo'li sifatida bog'lanadi.</p>
-</div>
+</main>
 
 <script>
   const GOOGLE_ENABLED = {{GOOGLE_ENABLED}};
@@ -150,7 +152,7 @@
     script.async = true;
     script.setAttribute("data-telegram-login", botUsername);
     script.setAttribute("data-size", "large");
-    script.setAttribute("data-radius", "12");
+    script.setAttribute("data-radius", "20"); // to'liq pill shakli
     script.setAttribute("data-auth-url", authUrl);
     script.setAttribute("data-request-access", "write");
     document.getElementById("tg-widget-wrap").appendChild(script);

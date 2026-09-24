@@ -6,238 +6,165 @@
 <title>Reyting</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js" crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" />
+<link rel="stylesheet" href="/static/theme.css?v=1" />
+<meta name="theme-color" content="#000000" />
 <style>
-  :root {
-    --text: #101a2e;
-    --hint: rgba(20,30,55,0.6);
-    --accent: #ff9f1c;
-    --glass-bg: rgba(255,255,255,0.4);
-    --rim-light: rgba(255,255,255,0.9);
-    --rim-shadow: rgba(10,30,70,0.16);
-    --paper-bg: #fbf3e3;
-    --paper-text: #3a2a14;
-    --paper-label: #a8742c;
-    --paper-divider: rgba(120,90,40,0.14);
-    --paper-approved: #5f8f4f;
-    --paper-pending: #b9822a;
-    --paper-other: #8a7860;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --text: #f2f6ff;
-      --hint: rgba(220,230,250,0.65);
-      --glass-bg: rgba(30,40,70,0.42);
-      --rim-light: rgba(255,255,255,0.3);
-      --rim-shadow: rgba(0,0,10,0.5);
-      --paper-bg: #2a2015;
-      --paper-text: #f3e9d8;
-      --paper-label: #d9a75c;
-      --paper-divider: rgba(230,200,150,0.14);
-      --paper-approved: #8fc97d;
-      --paper-pending: #e0ab5c;
-      --paper-other: #b3a48c;
-    }
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0;
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-    min-height: 100vh;
-  }
-  body { padding-bottom: 100px; position: relative; overflow-x: hidden; }
+  body { padding-bottom: 104px; }
 
-  /* ---------- Ko'k-oq porloq fon ---------- */
-  .bg {
-    position: fixed; inset: 0; z-index: -2; overflow: hidden;
-    background: radial-gradient(circle at 50% 0%, #eef7ff 0%, #cfe6ff 30%, #7fb3f5 65%, #2f63c9 100%);
-  }
-  @media (prefers-color-scheme: dark) {
-    .bg { background: radial-gradient(circle at 50% 0%, #1c2c4d 0%, #101a33 45%, #060a16 100%); }
-  }
-  .blob { position: absolute; border-radius: 50%; filter: blur(70px); }
-  .blob1 { width: 340px; height: 340px; top: -100px; left: -60px; background: #ffffff; opacity: 0.55; animation: float1 18s ease-in-out infinite; }
-  .blob2 { width: 300px; height: 300px; top: 30px; right: -100px; background: #a9d0ff; opacity: 0.6; animation: float2 20s ease-in-out infinite; }
-  .blob3 { width: 280px; height: 280px; top: 440px; left: -90px; background: #5c93e6; opacity: 0.5; animation: float3 16s ease-in-out infinite; }
-  .blob4 { width: 300px; height: 300px; bottom: -100px; right: -70px; background: #ffd48a; opacity: 0.35; animation: float1 24s ease-in-out infinite reverse; }
-  .blob5 { width: 220px; height: 220px; bottom: 200px; left: 50px; background: #ffffff; opacity: 0.4; animation: float2 15s ease-in-out infinite reverse; }
-
-  @keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-20px) scale(1.08); } }
-  @keyframes float2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-24px,26px) scale(1.05); } }
-  @keyframes float3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(20px,20px) scale(1.1); } }
-
-  .grain {
-    position: fixed; inset: 0; z-index: -1; opacity: 0.045; pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-  .sheen {
-    position: fixed; inset: -50% -50%; z-index: -1; pointer-events: none;
-    background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.20) 48%, rgba(255,255,255,0.32) 50%, rgba(255,255,255,0.20) 52%, transparent 60%);
-    animation: sheen-move 7s ease-in-out infinite;
-  }
-  @keyframes sheen-move { 0%,100% { transform: translateX(-10%) translateY(-6%); } 50% { transform: translateX(10%) translateY(6%); } }
-
-  .glass {
-    position: relative;
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(28px) saturate(190%);
-    backdrop-filter: blur(28px) saturate(190%);
-    box-shadow: 0 10px 36px var(--rim-shadow), inset 0 1px 0 var(--rim-light), inset 0 -1px 0 rgba(0,0,0,0.06);
-    border: 1px solid rgba(255,255,255,0.45);
-  }
-  .glass::after {
-    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-    background: linear-gradient(150deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(255,255,255,0.12) 100%);
-  }
-
-  .hero { margin: 16px 12px 0; border-radius: 28px; padding: 20px 16px; text-align: center; }
-  .hero .trophy { font-size: 34px; display: inline-block; animation: bob 3s ease-in-out infinite; filter: drop-shadow(0 6px 10px rgba(255,170,40,0.55)); }
-  @keyframes bob { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-6px) rotate(3deg); } }
-  .hero h1 { margin: 6px 0 2px; font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
-  .hero p {
-    margin: 4px 0 0; display: inline-block; color: var(--hint); font-size: 12.5px; font-weight: 700;
-    padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5);
-  }
-
-  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 8px; padding: 0 12px; margin-top: 20px; }
-  .podium-slot { flex: 1; max-width: 122px; display: flex; flex-direction: column; align-items: center; }
-  .podium-avatar-wrap { position: relative; margin-bottom: 8px; }
-  .avatar {
-    position: relative; overflow: hidden; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700;
-    border: 2.5px solid rgba(255,255,255,0.85);
-    box-shadow: 0 6px 18px rgba(20,50,100,0.28);
-  }
-  .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .podium-slot.p1 .avatar { width: 70px; height: 70px; font-size: 26px; box-shadow: 0 0 0 6px rgba(255,190,60,0.4), 0 8px 22px rgba(255,160,20,0.5); }
-  .podium-slot.p2 .avatar, .podium-slot.p3 .avatar { width: 54px; height: 54px; font-size: 19px; }
-  .crown { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 22px; filter: drop-shadow(0 3px 5px rgba(0,0,0,0.3)); animation: bob 2.6s ease-in-out infinite; z-index: 2; }
-  .podium-name { font-size: 12.5px; font-weight: 700; text-align: center; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 6px; }
-  .podium-block { width: 100%; border-radius: 20px 20px 10px 10px; display: flex; flex-direction: column; align-items: center; padding-top: 10px; position: relative; overflow: hidden; }
-  .podium-slot.p1 .podium-block { height: 90px; background: linear-gradient(160deg, rgba(255,220,140,0.6), rgba(255,175,50,0.4)); box-shadow: 0 0 30px rgba(255,190,70,0.4); }
-  .podium-slot.p2 .podium-block { height: 66px; background: linear-gradient(160deg, rgba(230,240,255,0.65), rgba(170,200,235,0.4)); }
-  .podium-slot.p3 .podium-block { height: 52px; background: linear-gradient(160deg, rgba(210,225,250,0.6), rgba(150,175,210,0.4)); }
-  .podium-rank { width: 25px; height: 25px; border-radius: 50%; background: rgba(255,255,255,0.65); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; margin-bottom: 4px; position: relative; z-index: 1; color: #101a2e; }
-  .podium-count { font-weight: 800; font-size: 12.5px; position: relative; z-index: 1; color: var(--accent); }
-
-  .list { border-radius: 24px; margin: 18px 12px 0; overflow: hidden; }
-  .row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid rgba(90,120,170,0.16); position: relative; }
-  .row:last-child { border-bottom: none; }
-  .row .rank { min-width: 24px; text-align: center; font-weight: 700; color: var(--hint); font-size: 13.5px; }
-  .row .avatar { width: 38px; height: 38px; font-size: 14px; border-width: 0; flex-shrink: 0; }
-  .row .name { flex: 1; font-size: 14.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .row .count { font-weight: 800; font-size: 13.5px; color: var(--accent); white-space: nowrap; }
-  .row.you-row { background: rgba(255,159,28,0.16); }
-  .row.you-row::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background: var(--accent); }
-
-  .list-loading { text-align: center; color: var(--hint); font-size: 13px; font-weight: 600; padding: 14px; }
-
-  .empty, .loading { text-align: center; color: var(--hint); padding: 40px 16px; }
-
-  .you-bar {
-    position: fixed; left: 12px; right: 12px; bottom: 16px;
-    border-radius: 24px; padding: 12px 16px; display: none; align-items: center; gap: 12px;
-    animation: glow-pulse 2.4s ease-in-out infinite;
-  }
-  @keyframes glow-pulse {
-    0%,100% { box-shadow: 0 10px 30px rgba(255,159,28,0.3), inset 0 1px 0 var(--rim-light); }
-    50% { box-shadow: 0 10px 40px rgba(255,159,28,0.55), inset 0 1px 0 var(--rim-light); }
-  }
-  .you-bar .rank { min-width: 30px; text-align: center; font-weight: 800; font-size: 14px; }
-  .you-bar .avatar { width: 38px; height: 38px; font-size: 14px; border-width: 0; flex-shrink: 0; }
-  .you-bar .name { flex: 1; font-weight: 700; font-size: 14px; }
-  .you-bar .badge { font-size: 10.5px; font-weight: 800; color: #fff; background: var(--accent); padding: 3px 9px; border-radius: 9px; margin-left: 6px; }
-
-  /* Twemoji: barcha qurilmalarda (iOS, Android, Windows) bir xil emoji ko'rinishi */
-  img.emoji { height: 1.15em; width: 1.15em; vertical-align: -0.2em; display: inline-block; }
-
+  /* ---------- Tab paneli: hero ostida yopishqoq ---------- */
   .tabbar {
-    display: flex; gap: 4px; margin: 14px 12px 0; padding: 4px; border-radius: 18px;
+    position: sticky; top: 0; z-index: 5;
+    display: flex; gap: 8px; padding: 12px var(--gutter);
+    background: var(--bg); border-bottom: 1px solid var(--line-soft);
   }
-  .tabbar button {
-    flex: 1; border: none; background: transparent; padding: 10px 8px; border-radius: 14px;
-    font-size: 13.5px; font-weight: 700; color: var(--hint); font-family: inherit;
+  .tabbar-inner { display: flex; gap: 8px; width: 100%; max-width: var(--page-max); margin: 0 auto; }
+
+  /* ---------- Podium: tahririy uch ustun ---------- */
+  .podium {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 8px;
+    margin-top: 40px;
   }
-  .tabbar button.active { background: rgba(255,255,255,0.55); color: var(--text); box-shadow: 0 4px 14px rgba(20,50,100,0.15); }
+  .podium-slot { display: flex; flex-direction: column; align-items: stretch; min-width: 0; }
+  .podium-avatar-wrap { margin-bottom: 10px; }
+  .podium-slot .avatar { width: 56px; height: 56px; font-size: 20px; }
+  .podium-slot.p1 .avatar { width: 76px; height: 76px; font-size: 28px; }
+  .podium-name {
+    font-size: 14px; line-height: 1.2; margin-bottom: 10px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .podium-block {
+    display: flex; flex-direction: column; justify-content: space-between;
+    border: 1px solid var(--line); padding: 10px 10px 12px;
+  }
+  .podium-slot.p1 .podium-block { height: 132px; background: var(--fg); color: var(--bg); }
+  .podium-slot.p2 .podium-block { height: 100px; }
+  .podium-slot.p3 .podium-block { height: 80px; }
+  .podium-rank { font-weight: 300; font-size: 45px; line-height: 0.76; }
+  .podium-slot.p1 .podium-rank { font-size: 78px; }
+  .podium-count { font-size: var(--text-caption); line-height: 1.19; }
 
-  .stats-card { margin: 16px 12px 0; border-radius: 24px; padding: 20px; }
-  .stats-card .label { font-size: 12.5px; font-weight: 700; color: var(--hint); text-transform: uppercase; letter-spacing: 0.3px; }
-  .stats-card .big-progress { display: flex; align-items: baseline; gap: 6px; margin: 6px 0 12px; }
-  .stats-card .big-progress .num { font-size: 34px; font-weight: 900; color: var(--accent); }
-  .stats-card .big-progress .of { font-size: 15px; font-weight: 700; color: var(--hint); }
-  .progress-track { width: 100%; height: 12px; border-radius: 8px; background: rgba(120,150,200,0.22); overflow: hidden; margin-bottom: 18px; }
-  .progress-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #ff9f1c, #ffcf6b); transition: width 0.4s ease; }
-  .stat-row-grid { display: flex; gap: 10px; margin-bottom: 16px; }
-  .stat-tile { flex: 1; border-radius: 16px; padding: 12px; text-align: center; background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.4); }
-  .stat-tile .n { font-size: 20px; font-weight: 900; }
-  .stat-tile .l { font-size: 11px; font-weight: 700; color: var(--hint); margin-top: 2px; }
-  .channel-chip { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.4); margin-bottom: 12px; }
-  .channel-chip .icon { font-size: 20px; }
-  .channel-chip .text { font-weight: 700; font-size: 13.5px; }
-  .rank-chip { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.4); }
-  .rank-chip .l { font-size: 13px; font-weight: 700; color: var(--hint); }
-  .rank-chip .v { font-size: 16px; font-weight: 900; color: var(--accent); }
+  /* ---------- Ro'yxat ---------- */
+  .list { margin-top: var(--section-gap); border-top: 1px solid var(--line); }
+  .row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 0; border-bottom: 1px solid var(--line-soft);
+    transition: background-color 0.8s var(--ease), color 0.8s var(--ease), padding 0.8s var(--ease);
+  }
+  .row .rank { width: 28px; flex-shrink: 0; font-size: var(--text-caption); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .row .name { flex: 1; min-width: 0; font-size: var(--text-body-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .count { font-size: var(--text-body-sm); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .row.you-row { background: var(--fg); color: var(--bg); padding-left: 12px; padding-right: 12px; }
+  .row.you-row .rank { color: inherit; opacity: 0.7; }
+  .row.clickable { cursor: pointer; }
+  .row.clickable::after {
+    content: "+"; width: 16px; text-align: center; font-weight: 300; font-size: 22px; line-height: 1;
+    transition: transform 0.8s var(--ease);
+  }
+  .row.clickable.open::after { transform: rotate(45deg); }
+  .podium-slot.clickable { cursor: pointer; }
 
-  /* Admin: profilga bosganda kimlarni taklif qilgani ochiladigan panel -
-     "krem qog'oz" uslubi, asosiy reyting qatorlaridan ataylab farq qiladi */
-  .row.clickable, .podium-slot.clickable { cursor: pointer; }
-  .referral-expand { margin: 6px 10px 10px; padding: 10px 14px; background: var(--paper-bg); border-radius: 14px; }
-  .re-title { font-size: 11px; font-weight: 800; color: var(--paper-label); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .re-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--paper-divider); }
+  /* ---------- Admin: kimlarni taklif qilgani (ichki panel) ---------- */
+  .referral-expand, #podium-expand { background: var(--inset); padding: 6px 16px; }
+  .referral-expand { margin: 0 0 8px; }
+  #podium-expand { margin-top: 20px; display: none; }
+  .re-title { padding-top: 10px; }
+  .re-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line-soft); }
   .re-row:last-child { border-bottom: none; }
-  .re-row .avatar { width: 30px; height: 30px; font-size: 12px; border-width: 0; flex-shrink: 0; }
+  .re-row .avatar { width: 32px; height: 32px; font-size: 13px; }
   .re-row .re-info { flex: 1; min-width: 0; }
-  .re-row .re-name { font-size: 13.5px; font-weight: 700; color: var(--paper-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .re-row .re-status { font-size: 11px; font-weight: 600; margin-top: 1px; }
-  .re-row .re-status.approved { color: var(--paper-approved); }
-  .re-row .re-status.pending { color: var(--paper-pending); }
-  .re-row .re-status.other { color: var(--paper-other); }
-  .re-row .re-count { font-weight: 800; font-size: 13px; color: var(--paper-label); white-space: nowrap; }
-  .re-empty, .re-loading { color: var(--paper-label); font-size: 12.5px; padding: 4px 0; }
-  #podium-expand { margin: 10px 12px 0; padding: 12px 14px; background: var(--paper-bg); border-radius: 16px; display: none; }
-  #podium-expand .re-title { margin-bottom: 6px; }
+  .re-row .re-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
+  .re-row .re-count { font-size: 14px; white-space: nowrap; }
+  .re-empty, .re-loading { color: var(--muted); font-size: var(--text-caption); padding: 10px 0; }
+
+  /* ---------- "Siz" paneli: shaffof slate pill ---------- */
+  .you-bar {
+    position: fixed; left: var(--gutter); right: var(--gutter); bottom: 16px; z-index: 10;
+    max-width: calc(var(--page-max) - 2 * var(--gutter)); margin: 0 auto;
+    display: none; align-items: center; gap: 12px;
+    padding: 8px 22px 8px 8px; border-radius: var(--radius-pill);
+    background: var(--scrim); color: var(--color-paper); border: 1px solid rgba(255,255,255,0.3);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    animation: rise 1.25s var(--ease) both;
+  }
+  .you-bar .avatar { width: 36px; height: 36px; font-size: 14px; border-radius: var(--radius-pill); }
+  .you-bar .rank { font-size: var(--text-caption); opacity: 0.75; font-variant-numeric: tabular-nums; }
+  .you-bar .name { flex: 1; min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .you-bar .badge { margin-left: 6px; padding: 2px 9px; border: 1px solid rgba(255,255,255,0.5); border-radius: var(--radius-pill); font-size: 11px; }
+  .you-bar .count { font-size: 15px; white-space: nowrap; }
+
+  /* ---------- Mening natijam ---------- */
+  .stats-card { padding-top: 32px; }
+  .big-progress { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin: 20px 0 24px; }
+  .big-progress .num { font-weight: 300; font-size: clamp(78px, 26vw, 152px); line-height: 0.76; }
+  .big-progress .of { font-size: 14px; color: var(--muted); }
+  .progress-track { height: 2px; background: var(--line-soft); margin-bottom: var(--section-gap); }
+  .progress-fill { height: 100%; background: var(--fg); transition: width 1.25s var(--ease); }
+  .stat-row-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: var(--section-gap); }
+  .stat-tile { border-top: 1px solid var(--line); padding-top: 10px; }
+  .stat-tile .n { font-weight: 300; font-size: clamp(29px, 9vw, 45px); line-height: 1.15; }
+  .stat-tile .l { margin-top: 4px; }
+  .line-item {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    padding: 16px 0; border-top: 1px solid var(--line-soft);
+  }
+  .line-item:last-child { border-bottom: 1px solid var(--line-soft); }
+  .line-item .eyebrow { flex-shrink: 0; white-space: nowrap; }
+  .line-item .text { font-size: var(--text-body-sm); text-align: right; }
+  .line-item .mark { margin-right: 8px; }
+  .line-item .v { font-weight: 300; font-size: 29px; line-height: 1; white-space: nowrap; }
 </style>
 </head>
 <body>
-  <div class="bg">
-    <div class="blob blob1"></div>
-    <div class="blob blob2"></div>
-    <div class="blob blob3"></div>
-    <div class="blob blob4"></div>
-    <div class="blob blob5"></div>
-  </div>
-  <div class="grain"></div>
-  <div class="sheen"></div>
+  <header class="hero">
+    <div class="iri" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    <nav class="hero-nav">
+      <span class="wordmark">uchqun</span>
+      <span class="eyebrow" style="color: rgba(255,255,255,0.82);">Mavsum reytingi</span>
+    </nav>
+    <div>
+      <p class="hero-meta" id="season-label">Yuklanmoqda...</p>
+      <h1 class="hero-title">Reyting</h1>
+    </div>
+    <svg class="spin-badge" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><path id="badge-circle" d="M50,50 m-38,0 a38,38 0 1,1 76,0 a38,38 0 1,1 -76,0" /></defs>
+      <text><textPath href="#badge-circle">PASTGA SURING · PASTGA SURING ·</textPath></text>
+    </svg>
+  </header>
 
-  <div class="hero glass">
-    <div class="trophy">🏆</div>
-    <h1>Reyting</h1>
-    <p id="season-label">Yuklanmoqda...</p>
-  </div>
-
-  <div class="tabbar glass">
-    <button id="tab-btn-reyting" class="active" onclick="showTab('reyting')">🏆 Reyting</button>
-    <button id="tab-btn-mine" onclick="showTab('mine')">📊 Mening natijam</button>
-  </div>
-
-  <div id="panel-reyting">
-    <div id="podium" class="podium"></div>
-    <div id="podium-expand"></div>
-    <div id="list" class="list glass"><div class="loading">Yuklanmoqda...</div></div>
+  <div class="tabbar">
+    <div class="tabbar-inner">
+      <button id="tab-btn-reyting" class="pill sm active" onclick="showTab('reyting')">Reyting</button>
+      <button id="tab-btn-mine" class="pill sm" onclick="showTab('mine')">Mening natijam</button>
+    </div>
   </div>
 
-  <div id="panel-mine" style="display:none;">
-    <div id="stats-card" class="stats-card glass"><div class="loading">Yuklanmoqda...</div></div>
-  </div>
+  <main class="wrap" style="padding-bottom: 32px;">
+    <div id="panel-reyting">
+      <div id="podium" class="podium"></div>
+      <div id="podium-expand"></div>
+      <div id="list" class="list"><div class="loading">Yuklanmoqda...</div></div>
+    </div>
 
-  <div id="you-bar" class="you-bar glass"></div>
+    <div id="panel-mine" style="display:none;">
+      <div id="stats-card" class="stats-card"><div class="loading">Yuklanmoqda...</div></div>
+    </div>
+  </main>
+
+  <div id="you-bar" class="you-bar"></div>
 
   <script>
     const tg = window.Telegram ? window.Telegram.WebApp : null;
-    if (tg) { tg.ready(); tg.expand(); }
+    if (tg) {
+      tg.ready(); tg.expand();
+      // Telegram sarlavhasi qora hero bilan bir butun ko'rinishi uchun
+      try { tg.setHeaderColor("#000000"); } catch (e) {}
+    }
 
-    const PALETTE = ["#3aa0ff", "#5c93e6", "#37c980", "#a463ff", "#ff5f8f", "#ffb238", "#4dd0e1"];
+    // Monoxrom tizim: bosh harfli avatarlar faqat kulrang tuslarda
+    const PALETTE = ["#181818", "#2e2e2e", "#454545", "#636363", "#808080", "#6d6d6d"];
 
     function initials(name) {
       return (name || "?").trim().charAt(0).toUpperCase();
@@ -295,14 +222,14 @@
       }
       return data.referrals
         .map((r) => {
-          const statusClass = r.status === "approved" ? "approved" : r.status === "pending" ? "pending" : "other";
+          const statusClass = r.status === "approved" ? "filled" : r.status === "pending" ? "" : "quiet";
           const label = REFERRAL_STATUS_LABEL[r.status] || r.status;
           return `
             <div class="re-row">
               ${avatarHtml(r.name, r.tg_id)}
               <div class="re-info">
                 <div class="re-name">${r.name}${r.username ? " @" + r.username : ""}</div>
-                <div class="re-status ${statusClass}">${label}</div>
+                <span class="tag ${statusClass}">${label}</span>
               </div>
               <div class="re-count">${r.referred_count} ta</div>
             </div>
@@ -315,12 +242,15 @@
       const existing = rowEl.nextElementSibling;
       if (existing && existing.classList.contains("referral-expand")) {
         existing.remove();
+        rowEl.classList.remove("open");
         return;
       }
       document.querySelectorAll(".referral-expand").forEach((el) => el.remove());
+      document.querySelectorAll(".row.open").forEach((el) => el.classList.remove("open"));
+      rowEl.classList.add("open");
 
       const expandEl = document.createElement("div");
-      expandEl.className = "referral-expand";
+      expandEl.className = "referral-expand rise";
       expandEl.innerHTML = '<div class="re-loading">Yuklanmoqda...</div>';
       rowEl.after(expandEl);
 
@@ -341,13 +271,13 @@
       }
       el.dataset.tgid = String(tgId);
       el.style.display = "block";
-      el.innerHTML = `<div class="re-title">${name} taklif qilganlar</div><div class="re-loading">Yuklanmoqda...</div>`;
+      el.innerHTML = `<div class="re-title eyebrow">${name} taklif qilganlar</div><div class="re-loading">Yuklanmoqda...</div>`;
 
       try {
         const data = await fetchReferrals(tgId);
-        el.innerHTML = `<div class="re-title">${name} taklif qilganlar</div>${referralsListHtml(data)}`;
+        el.innerHTML = `<div class="re-title eyebrow">${name} taklif qilganlar</div>${referralsListHtml(data)}`;
       } catch (e) {
-        el.innerHTML = `<div class="re-title">${name} taklif qilganlar</div><div class="re-empty">Yuklab bo'lmadi.</div>`;
+        el.innerHTML = `<div class="re-title eyebrow">${name} taklif qilganlar</div><div class="re-empty">Yuklab bo'lmadi.</div>`;
       }
     }
 
@@ -364,13 +294,12 @@
         const e = bySlot[rank];
         if (!e) { html += `<div class="podium-slot p${rank}"></div>`; return; }
         html += `
-          <div class="podium-slot p${rank}${isAdmin ? ' clickable' : ''}" ${isAdmin ? `data-tgid="${e.tg_id}" data-name="${e.name}"` : ''}>
+          <div class="podium-slot rise p${rank}${isAdmin ? ' clickable' : ''}" style="animation-delay:${rank === 1 ? 0 : rank * 80}ms" ${isAdmin ? `data-tgid="${e.tg_id}" data-name="${e.name}"` : ''}>
             <div class="podium-avatar-wrap">
-              ${rank === 1 ? '<div class="crown">👑</div>' : ''}
               ${avatarHtml(e.name, e.tg_id)}
             </div>
             <div class="podium-name">${e.name}${e.is_you ? " (siz)" : ""}</div>
-            <div class="podium-block glass"><div class="podium-rank">${rank}</div><div class="podium-count">${e.count} ta</div></div>
+            <div class="podium-block"><div class="podium-rank">${rank}</div><div class="podium-count">${e.count} ta</div></div>
           </div>
         `;
       });
@@ -391,9 +320,10 @@
         listEl.innerHTML = '<div class="empty">Hali hech kim tasdiqlangan taklif qilmagan.<br>Birinchi bo\'ling!</div>';
         return;
       }
-      rest.forEach((e) => {
+      rest.forEach((e, i) => {
         const row = document.createElement("div");
-        row.className = "row" + (e.is_you ? " you-row" : "") + (isAdmin ? " clickable" : "");
+        row.className = "row rise" + (e.is_you ? " you-row" : "") + (isAdmin ? " clickable" : "");
+        row.style.animationDelay = `${Math.min(i, 12) * 40}ms`;
         row.innerHTML = `
           <div class="rank">${e.rank}</div>
           ${avatarHtml(e.name, e.tg_id)}
@@ -417,7 +347,7 @@
         <div class="rank">${you.rank}</div>
         ${avatarHtml(you.name, you.tg_id)}
         <div class="name">${you.name} <span class="badge">Siz</span></div>
-        <div class="count" style="color: var(--accent); font-weight:800;">${you.count} ta</div>
+        <div class="count">${you.count} ta</div>
       `;
     }
 
@@ -465,9 +395,9 @@
     });
 
     const CHANNEL_STATUS = {
-      joined: { icon: "✅", text: "Siz allaqachon yopiq kanaldasiz" },
-      pending: { icon: "⏳", text: "Havola berilgan, kanalga qo'shilishni kutmoqda" },
-      none: { icon: "❌", text: "Maxfiy kanal hali olinmagan" },
+      joined: { icon: "●", text: "Siz allaqachon yopiq kanaldasiz" },
+      pending: { icon: "◐", text: "Havola berilgan, kanalga qo'shilishni kutmoqda" },
+      none: { icon: "○", text: "Maxfiy kanal hali olinmagan" },
     };
 
     let myStatsLoaded = false;
@@ -490,17 +420,22 @@
         const channel = CHANNEL_STATUS[data.channel_status] || CHANNEL_STATUS.none;
 
         cardEl.innerHTML = `
-          <div class="label">${data.season.name} · joriy natijangiz</div>
-          <div class="big-progress"><span class="num">${p.approved}</span><span class="of">/ ${p.required} ta talab qilingan taklif</span></div>
-          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="eyebrow">${data.season.name} · joriy natijangiz</div>
+          <div class="big-progress rise"><span class="num">${p.approved}</span><span class="of">/ ${p.required} ta talab qilingan taklif</span></div>
+          <div class="progress-track"><div class="progress-fill" style="width:0%" data-pct="${pct}"></div></div>
           <div class="stat-row-grid">
-            <div class="stat-tile"><div class="n" style="color:#2e9e4f">${p.approved}</div><div class="l">✅ Tasdiqlangan</div></div>
-            <div class="stat-tile"><div class="n" style="color:#c98a10">${p.pending}</div><div class="l">⏳ Kutilmoqda</div></div>
-            <div class="stat-tile"><div class="n" style="color:#c94040">${p.remaining}</div><div class="l">📝 Qolgan</div></div>
+            <div class="stat-tile"><div class="n">${p.approved}</div><div class="l eyebrow">Tasdiqlangan</div></div>
+            <div class="stat-tile"><div class="n">${p.pending}</div><div class="l eyebrow">Kutilmoqda</div></div>
+            <div class="stat-tile"><div class="n">${p.remaining}</div><div class="l eyebrow">Qolgan</div></div>
           </div>
-          <div class="channel-chip"><div class="icon">${channel.icon}</div><div class="text">${channel.text}</div></div>
-          ${data.rank ? `<div class="rank-chip"><div class="l">Joriy mavsum reytingida o'rningiz</div><div class="v">${data.rank}-o'rin</div></div>` : ""}
+          <div class="line-item"><div class="eyebrow">Maxfiy kanal</div><div class="text"><span class="mark">${channel.icon}</span>${channel.text}</div></div>
+          ${data.rank ? `<div class="line-item"><div class="eyebrow">Joriy mavsumdagi o'rningiz</div><div class="v">${data.rank}-o'rin</div></div>` : ""}
         `;
+        // Progress chizig'i sekin "sirpanib" to'lishi uchun keyingi kadrda kengligini beramiz
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          const fill = cardEl.querySelector(".progress-fill");
+          if (fill) fill.style.width = fill.dataset.pct + "%";
+        }));
         if (window.twemoji) window.twemoji.parse(cardEl);
       } catch (e) {
         cardEl.innerHTML = '<div class="empty">Ma\'lumotni yuklab bo\'lmadi. Keyinroq urinib ko\'ring.</div>';

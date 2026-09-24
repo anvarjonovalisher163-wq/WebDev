@@ -6,44 +6,45 @@
 <title>Marra</title>
 <link rel="manifest" href="/static/manifest.json" />
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png" />
-<meta name="theme-color" content="#071944" />
+<meta name="theme-color" content="#000000" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" />
+<link rel="stylesheet" href="/static/theme.css?v=1" />
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  :root {
-    --bg: #f4f7fb; --card-bg: #ffffff; --text: #101a2e; --hint: rgba(20,30,55,0.6);
-    --navy: #071944; --accent: #2a78c8; --border: #e2e7f0; --green: #1a9e5c; --red: #d0473b;
+  main.wrap { padding-top: 32px; padding-bottom: 48px; }
+  .about { margin-bottom: var(--section-gap); }
+  .about .lead { margin-bottom: 20px; }
+  .kv { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line-soft); }
+  .kv:last-child { border-bottom: 1px solid var(--line-soft); }
+  .kv .v { text-align: right; }
+
+  .progress-label { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .progress-label #progress-text { font-weight: 300; font-size: clamp(45px, 14vw, 78px); line-height: 0.9; }
+  .progress-label #progress-pct { font-size: var(--text-caption); color: var(--muted); }
+  .progress-wrap { height: 2px; background: var(--line-soft); margin: 16px 0 28px; }
+  .progress-bar { height: 100%; width: 0%; background: var(--fg); transition: width 1.25s var(--ease); }
+
+  .days { display: flex; gap: 6px; flex-wrap: wrap; }
+  .day {
+    width: 34px; height: 34px; border-radius: var(--radius-pill);
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--text-caption); border: 1px solid var(--line-soft); color: var(--muted);
+    transition: background-color 0.8s var(--ease), color 0.8s var(--ease), border-color 0.8s var(--ease);
   }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #0c1220; --card-bg: #151c30; --text: #f2f6ff; --hint: rgba(220,230,250,0.65); --border: #26304a; }
+  .day.done { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+  .day.today { border-color: var(--fg); color: var(--fg); }
+  .day.today.done { color: var(--bg); }
+
+  .book-text {
+    white-space: pre-wrap; font-size: var(--text-body); line-height: 1.58; color: var(--fg-soft);
+    max-height: 60vh; overflow-y: auto; padding-right: 4px;
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
-  body { padding: 16px 16px 40px; }
-  h1 { font-size: 18px; margin: 4px 0 4px; }
-  .hint { color: var(--hint); font-size: 13px; }
-  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
-  .blocked { text-align: center; padding: 60px 20px; color: var(--hint); }
 
-  .progress-wrap { background: var(--border); border-radius: 20px; height: 10px; overflow: hidden; margin: 8px 0; }
-  .progress-bar { background: var(--green); height: 100%; width: 0%; transition: width 0.4s; }
-  .progress-label { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; }
-
-  .days { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-  .day { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 600; background: var(--border); color: var(--hint); }
-  .day.done { background: var(--green); color: #fff; }
-  .day.today { outline: 2px solid var(--accent); }
-
-  button.primary { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--navy);
-    color: #fff; font-size: 15px; font-weight: 600; margin-top: 10px; cursor: pointer; }
-  button.primary:disabled { opacity: 0.5; }
-
-  .book-text { white-space: pre-wrap; font-size: 15px; line-height: 1.7; max-height: 50vh; overflow-y: auto;
-    border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 10px; }
-
-  .warn { font-size: 12px; color: var(--red); margin-top: 10px; }
-  .ok-msg { text-align: center; color: var(--green); font-weight: 600; margin-top: 10px; }
+  .warn { margin-top: 20px; }
+  .ok-msg { margin-top: 20px; font-size: var(--text-body-sm); }
+  .ok-msg::before { content: "● "; }
 </style>
 </head>
 <body>
@@ -55,6 +56,7 @@
 const tg = window.Telegram?.WebApp;
 tg?.ready();
 tg?.expand();
+try { tg?.setHeaderColor("#000000"); } catch (e) {}
 const initData = tg?.initData || "";
 const params = new URLSearchParams(window.location.search);
 const campaignId = params.get("id");
@@ -108,29 +110,46 @@ function renderCampaign(data) {
   }).join("");
 
   appEl.innerHTML = `
-    <h1>📖 ${data.title}</h1>
-    <p class="hint">${data.book_title} - ${data.day_count} kunlik marra</p>
-    ${data.description ? `<div class="card"><div class="hint">${data.description}</div></div>` : ""}
-    ${data.prize_text ? `<div class="card">🏆 <b>Sovrin:</b> ${data.prize_text}</div>` : ""}
-    <p class="hint">Marra muallifi: UCHQUN</p>
-
-    <div class="card" id="join-card" style="display:${data.joined ? "none" : "block"};">
-      <p>Marraga qo'shilib, kunlik ${data.daily_minutes_required} daqiqa o'qishni boshlang.</p>
-      <button class="primary" id="btn-join">Marraga qo'shilish</button>
-    </div>
-
-    <div id="active-area" style="display:${data.joined ? "block" : "none"};">
-      <div class="card">
-        <div class="progress-label"><span id="progress-text">0 / ${data.daily_minutes_required} daq</span><span id="progress-pct">0%</span></div>
-        <div class="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
-        <div class="days">${daysHtml}</div>
-        ${data.is_eliminated ? '<p class="warn">Siz ushbu marradan avtomatik chiqarilgansiz - kunlardan biri bajarilmagan.</p>' : ""}
-        <p id="completed-msg" class="ok-msg" style="display:none;">Bugungi vazifa bajarildi ✅</p>
+    <header class="hero compact">
+      <div class="iri" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <nav class="hero-nav">
+        <span class="wordmark">uchqun</span>
+        <span class="eyebrow" style="color: rgba(255,255,255,0.82);">Marra</span>
+      </nav>
+      <div>
+        <p class="hero-meta">${data.book_title} - ${data.day_count} kunlik marra</p>
+        <h1 class="hero-title sm">${data.title}</h1>
       </div>
-      <div class="card">
-        <div class="book-text" id="book-text">${data.book_text || ""}</div>
+    </header>
+
+    <main class="wrap">
+      <div class="about">
+        ${data.description ? `<p class="lead">${data.description}</p>` : ""}
+        ${data.prize_text ? `<div class="kv"><span class="eyebrow">Sovrin</span><span class="v">${data.prize_text}</span></div>` : ""}
+        <div class="kv"><span class="eyebrow">Marra muallifi</span><span class="v">UCHQUN</span></div>
       </div>
-    </div>
+
+      <section class="section" id="join-card" style="display:${data.joined ? "none" : "block"};">
+        <span class="eyebrow">Qo'shilish</span>
+        <p class="lead" style="margin-bottom: 28px;">Marraga qo'shilib, kunlik ${data.daily_minutes_required} daqiqa o'qishni boshlang.</p>
+        <button class="pill block" id="btn-join">Marraga qo'shilish</button>
+      </section>
+
+      <div id="active-area" style="display:${data.joined ? "block" : "none"};">
+        <section class="section">
+          <span class="eyebrow">Bugungi o'qish</span>
+          <div class="progress-label"><span id="progress-text">0 / ${data.daily_minutes_required} daq</span><span id="progress-pct">0%</span></div>
+          <div class="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+          <div class="days">${daysHtml}</div>
+          ${data.is_eliminated ? '<p class="notice warn">Siz ushbu marradan avtomatik chiqarilgansiz - kunlardan biri bajarilmagan.</p>' : ""}
+          <p id="completed-msg" class="ok-msg" style="display:none;">Bugungi vazifa bajarildi</p>
+        </section>
+        <section class="section">
+          <span class="eyebrow">${data.book_title}</span>
+          <div class="book-text" id="book-text">${data.book_text || ""}</div>
+        </section>
+      </div>
+    </main>
   `;
 
   document.getElementById("btn-join").addEventListener("click", async () => {
